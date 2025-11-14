@@ -1,0 +1,153 @@
+C251 COMPILER V5.60.0,  Encoder                                                            27/09/25  17:16:20  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE Encoder
+OBJECT MODULE PLACED IN .\Objects\Encoder.obj
+COMPILER INVOKED BY: C:\PIE\software\C251\BIN\C251.EXE ..\..\..\Libraries\boards\src\Encoder.c XSMALL BROWSE INCDIR(..\.
+                    -.\..\Libraries\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG PRINT(.\Listi
+                    -ngs\Encoder.lst) TABS(2) OBJECT(.\Objects\Encoder.obj) 
+
+stmt  level    source
+
+    1          #include "Encoder.h"
+    2          #include "CNU_PIE_TIMER.h"
+    3          #include "CNU_PIE_GPIO.h"
+    4          /*修改时间2024.10.16，修改人BO*/
+    5          
+    6          #define ENCODER_TYPE_2 //光栅编码器
+    7          /*以下代码适配龙邱，逐飞编码器，带有方向输出，分别为脉冲和方向输出*/
+    8          #ifdef ENCODER_TYPE_1
+               #define Encoder_Dir   P52  //编码器方向引脚定义
+               #define Encoder_Tim   P04  //编码器计数引脚定义
+               
+               Encoder_TypeDef Encoder_X;
+               
+               void Encoder_Init(void)
+               {
+                 Timer_Count_Init(TIMER3_P04);//编码器脉冲引脚捕获引脚初始化
+               
+                 GPIO_Init(GPIO_P5 , GPIO_Pin_2 , GPIO_PullUp);
+               }
+               
+               int Encoder_Count_Read(void)
+               {
+                 Encoder_X.pouse = Timer_Count_Read(TIMER3_P04); 
+               
+                 if(Encoder_Dir==0) Encoder_X.pouse_t = Encoder_X.pouse_t - (Encoder_X.pouse - Encoder_X.pouse_last);
+                                 else Encoder_X.pouse_t = Encoder_X.pouse_t + (Encoder_X.pouse - Encoder_X.pouse_last);
+               
+                   Encoder_X.pouse_last = Encoder_X.pouse;
+               
+                 return Encoder_X.pouse_t;
+               }
+               
+               void Encoder_Clear(void)
+               {
+                 Timer_Count_Clear(TIMER3_P04);
+                 Encoder_X.pouse = 0;
+                 Encoder_X.pouse_last = 0;
+                 Encoder_X.pouse_t = 0;
+               }
+               #endif
+   41          
+   42          /*以下代码适配自制车模光栅编码器，为增量式，分别为A，B相输出*/
+   43          /*因为硬件接引脚问题，只有P04口会通过外部计数模式记录脉冲*/
+   44          /*使用了外部时钟计数的方法实现编码器*/
+   45          #ifdef ENCODER_TYPE_2
+   46          
+   47          #define Encoder_Null   P52  //无用的引脚定义
+   48          #define Encoder_Num   P04  //编码器计数引脚定义
+   49          Encoder_TypeDef Encoder_Y;
+   50          
+   51          void Encoder_Init(void)
+   52          {
+   53   1      
+   54   1          T3L = 0; 
+   55   1          T3H = 0;
+   56   1          T4T3M |= 0x0e; // 设置外部计数模式并启动定时器
+   57   1          IE2=ET3;
+C251 COMPILER V5.60.0,  Encoder                                                            27/09/25  17:16:20  PAGE 2   
+
+   58   1          EA=1;
+   59   1          //定时器3设置为外部计数，对P04开始计数
+   60   1      
+   61   1      }
+   62          
+   63          
+   64          int Encoder_Count_Read(void)
+   65          {  
+   66   1        Encoder_Y.pouse = (uint16_t)T3H << 8;
+   67   1        Encoder_Y.pouse = ((uint16_t)T3L) | Encoder_Y.pouse;
+   68   1        Encoder_Y.pouse_t = Encoder_Y.pouse_t + (Encoder_Y.pouse - Encoder_Y.pouse_last);
+   69   1        Encoder_Y.pouse_last = Encoder_Y.pouse;
+   70   1        return Encoder_Y.pouse_t;
+   71   1      }
+   72          
+   73          
+   74          void Encoder_Clear(void)
+   75          {
+   76   1          T4T3M &= ~(1<<3);
+   77   1          T3H = 0;
+   78   1          T3L = 0;//清零定时器3
+   79   1          T4T3M |= (1<<3);
+   80   1          IE2 &= ~ET3;//关闭定时器3中断
+   81   1      
+   82   1          Encoder_Y.pouse = 0;
+   83   1          Encoder_Y.pouse_last = 0;
+   84   1          Encoder_Y.pouse_t = 0;
+   85   1      }
+   86          
+   87          int Pulse_Direction_Judgment(float out , int pulse)
+   88          //根据PID输出判断脉冲方向，调整脉冲数
+   89          {
+   90   1        static int time = 0;
+   91   1        static int flag = 0;
+   92   1        if(out>=0)
+   93   1        {
+   94   2          time++;
+   95   2          if(time>5)
+   96   2          {
+   97   3            flag=1;
+   98   3            time=0;
+   99   3          }
+  100   2        }
+  101   1        if(out<0)
+  102   1        {
+  103   2          time++;
+  104   2          if(time>5)
+  105   2          {
+  106   3            flag=0;
+  107   3            time=0;
+  108   3          }
+  109   2        }
+  110   1        if(flag==0)
+  111   1          pulse=-1*pulse;
+  112   1        return pulse;
+  113   1      }
+  114          #endif
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       198     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+C251 COMPILER V5.60.0,  Encoder                                                            27/09/25  17:16:20  PAGE 3   
+
+  xdata-const size     =    ------     ------
+  edata size           =        10     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        12     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

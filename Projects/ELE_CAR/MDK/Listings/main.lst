@@ -1,0 +1,545 @@
+C251 COMPILER V5.60.0,  main                                                               14/11/25  20:12:01  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE main
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\USER\src\main.c XSMALL BROWSE INCDIR(..\..\..\Librari
+                    -es\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG PRINT(.\Listings\main.lst
+                    -) TABS(2) OBJECT(.\Objects\main.obj) 
+
+stmt  level    source
+
+    1          #include "main.h"
+    2          #include <MATH.H>
+    3          
+    4          // 参数区
+    5          #define KP 0.5
+    6          #define KI 0.1
+    7          #define KD 0.1
+    8          #define MAX_ABS_I 5
+    9          #define TIMER_TIMES 5
+   10          #define TIMER_TIME 10
+   11          #define MAX_SPEED 1000
+   12          #define MIN_SPEED 800
+   13          
+   14          // 定义区
+   15          /// @brief 8个ADC针脚
+   16          char ADC[8] = {ADC_P13, ADC_P16, ADC_P10, ADC_P11,
+   17                   ADC_P02, ADC_P05, ADC_P00, ADC_P01};
+   18          /// @brief 舵机
+   19          #define SERVO PWMB_CH1_P74
+   20          /// @brief 左侧电机调速引脚
+   21          #define MOTOR_L PWMA_CH2P_P62
+   22          /// @brief 右侧电机调速引脚
+   23          #define MOTOR_R PWMA_CH3P_P64
+   24          /// @brief 左侧电机基准引脚
+   25          #define MOTOR_BASE_L PWMA_CH1P_P60
+   26          /// @brief 左侧电机基准引脚
+   27          #define MOTOR_BASE_R PWMA_CH4P_P66
+   28          /// @brief 四颗LED灯
+   29          char LEDPin[4] = {GPIO_Pin_7, GPIO_Pin_6, GPIO_Pin_5, GPIO_Pin_4};
+   30          #define LED(x) GPIO_P3, LEDPin[x]
+   31          /// @brief 两个按键
+   32          char KEYPin[2] = {GPIO_Pin_7, GPIO_Pin_6};
+   33          #define KEY(x) GPIO_P0, KEYPin[x]
+   34          /// @brief 十字键
+   35          #define DPAD_UP GPIO_P4, GPIO_P2
+   36          #define DPAD_DOWN GPIO_P4, GPIO_Pin_6
+   37          #define DPAD_LEFT GPIO_P4, GPIO_Pin_5
+   38          #define DPAD_RIGHT GPIO_P4, GPIO_Pin_1
+   39          #define DPAD_MID GPIO_P2, GPIO_P7
+   40          /// @brief 蜂鸣器
+   41          #define BUZZER PWMB_CH3_P33
+   42          
+   43          // 变量区
+   44          float PID_OUT;
+   45          uint8_t times;
+   46          // /// @brief 定时器时间
+   47          // uint8_t timerMs = 10;
+   48          // /// @brief start键计数
+   49          // uint8_t key0Times = 0;
+   50          // /// @brief select键计数
+   51          // uint8_t key1Times = 0;
+   52          // /// @brief BIOS当前页数
+   53          // uint8_t page[2] = {1, 1};
+   54          // /// @brief BIOS当前页数级
+   55          // uint8_t pageLevel = 0;
+   56          // /// @brief BIOS第一页栏数
+   57          // #define FIRST_PAGE_NUM 5
+C251 COMPILER V5.60.0,  main                                                               14/11/25  20:12:01  PAGE 2   
+
+   58          /// @brief ADC原始数据
+   59          uint16_t adcRaw[4];
+   60          /// @brief ADC最大值
+   61          uint16_t adcMax[4];
+   62          /// @brief ADC最小值
+   63          uint16_t adcMin[4];
+   64          /// @brief ADC归一化中滤波所用：获取的多个ADC值
+   65          uint16_t getADC[10];
+   66          /// @brief ADC归一化中滤波所用：冒泡排序暂存值
+   67          uint16_t temp;
+   68          /// @brief 舵机归中中值
+   69          uint16_t midDutyOfServo;
+   70          /// @brief ADC左综合之
+   71          float adcL;
+   72          /// @brief ADC右
+   73          float adcR;
+   74          float sumOfError;
+   75          float lastError;
+   76          uint16_t midDutyOfServo = 730, maxChangeDuty = 130;
+   77          float adcAfterNorm[4], adcL, adcR, error, kp, ki, kd;
+   78          char getADCLine[16];
+   79          uint8_t i, j, k, ADCPin[4] = {0, 1, 6, 7};
+   80          
+   81          void All_Init(uint8_t timerMs);
+   82          void beep(uint16_t freq, uint16_t duty, uint16_t beepTime, uint16_t sleepTime);
+   83          void ADC_Norm_Slow();
+   84          void Get_ADC();
+   85          float Normalization();
+   86          float PID_Calculate(float error, float kp, float ki, float kd, float maxAbsI);
+   87          void Servo_Control_By_Error(float errorInner);
+   88          void Go(uint16_t minSpeed, uint16_t maxSpeed);
+   89          
+   90          void main()
+   91          {
+   92   1        All_Init(TIMER_TIME);
+   93   1        ADC_Norm_Slow();
+   94   1        while (1)
+   95   1        {
+   96   2          Get_ADC();
+   97   2          PID_OUT = PID_Calculate(Normalization(), KP, KI, KD, MAX_ABS_I);
+   98   2          Go(MIN_SPEED, MAX_SPEED);
+   99   2        }
+  100   1      }
+  101          
+  102          void PIT0_Activated() interrupt TMR0_VECTOR
+  103          {
+  104   1        times++;
+  105   1        if (times >= (TIMER_TIMES - 1))
+  106   1        {
+  107   2          Servo_Control_By_Error(PID_OUT);
+  108   2          times = 0;
+  109   2        }
+  110   1      }
+  111          
+  112          // void P0_EXTI_Activated() interrupt P0INT_VECTOR
+  113          // {
+  114          //  GPIO_EXTI_Flag_Read(GPIO_P0);
+  115          //  if (Port_Exti_Flag[0])
+  116          //  {
+  117          //    GPIO_EXTI_Flag_Clear(GPIO_P0);
+  118          //    if (Port_Exti_Flag[0] & Port_Pin_7)
+  119          //    {
+  120          //      key0Times++;
+  121          //      Ms_Delay(50);
+  122          //    }
+  123          //    else if (Port_Exti_Flag[0] & Port_Pin_6)
+C251 COMPILER V5.60.0,  main                                                               14/11/25  20:12:01  PAGE 3   
+
+  124          //    {
+  125          //      key1Times++;
+  126          //      Ms_Delay(50);
+  127          //    }
+  128          //  }
+  129          // }
+  130          
+  131          void All_Init(uint8_t timerMs)
+  132          {
+  133   1        Board_Init();
+  134   1      
+  135   1        ADC_Init(ADC[0], ADC_SPEED_2X16T);
+  136   1        ADC_Init(ADC[7], ADC_SPEED_2X16T);
+  137   1      
+  138   1        UART_Init(UART_1, UART1_RX_P43, UART1_TX_P44, 9600, TIM1);
+  139   1      
+  140   1        PWM_Init(SERVO, 50, midDutyOfServo);
+  141   1      
+  142   1        PWM_Init(MOTOR_L, 10000, 10000);
+  143   1        PWM_Init(MOTOR_R, 10000, 10000);
+  144   1        PWM_Init(MOTOR_BASE_L, 10000, 10000);
+  145   1        PWM_Init(MOTOR_BASE_R, 10000, 10000);
+  146   1        for (i = 0; i < 4; i++)
+  147   1          GPIO_Init(LED(i), GPIO_OUT_PP);
+  148   1      
+  149   1        GPIO_Init(KEY(0), GPIO_PullUp);
+  150   1        GPIO_Init(KEY(1), GPIO_PullUp);
+  151   1      
+  152   1        GPIO_Init(DPAD_UP, GPIO_PullUp);
+  153   1        GPIO_Init(DPAD_DOWN, GPIO_PullUp);
+  154   1        GPIO_Init(DPAD_LEFT, GPIO_PullUp);
+  155   1        GPIO_Init(DPAD_RIGHT, GPIO_PullUp);
+  156   1        GPIO_Init(DPAD_MID, GPIO_PullUp);
+  157   1      
+  158   1        // PWM_Init(BUZZER, 1000, 10000);
+  159   1      
+  160   1        GPIO_EXTI_Init(KEY(0), FALLING_EDGE);
+  161   1        GPIO_EXTI_Open(KEY(0));
+  162   1        GPIO_EXTI_Init(KEY(1), FALLING_EDGE);
+  163   1        GPIO_EXTI_Open(KEY(1));
+  164   1        GPIO_EXTI_Init(DPAD_UP, FALLING_EDGE);
+  165   1        GPIO_EXTI_Open(DPAD_UP);
+  166   1        GPIO_EXTI_Init(DPAD_DOWN, FALLING_EDGE);
+  167   1        GPIO_EXTI_Open(DPAD_DOWN);
+  168   1        GPIO_EXTI_Init(DPAD_LEFT, FALLING_EDGE);
+  169   1        GPIO_EXTI_Open(DPAD_LEFT);
+  170   1        GPIO_EXTI_Init(DPAD_RIGHT, FALLING_EDGE);
+  171   1        GPIO_EXTI_Open(DPAD_RIGHT);
+  172   1      
+  173   1        LCD_Init();
+  174   1      
+  175   1        PIT_Timer_Ms(TIM0, timerMs);
+  176   1      }
+  177          
+  178          /// @brief 显示BIOS设置第一页
+  179          // void First_Page(uint8_t page)
+  180          // {
+  181          //     LCD_P6x8Str(0, 1, "---------------------");
+  182          //     LCD_P6x8Str(0, 0, "        BIOS         ");
+  183          //     LCD_P6x8Str(0, 4, "                     ");
+  184          //     LCD_P6x8Str(0, 6, "                     ");
+  185          //     switch (page)
+  186          //     {
+  187          //     case 1:
+  188          //         LCD_P8x16Str(0, 2, ">1.Timer Value<");
+  189          //         LCD_P6x8Str(0, 5, "2.Servo Duty         ");
+C251 COMPILER V5.60.0,  main                                                               14/11/25  20:12:01  PAGE 4   
+
+  190          //         LCD_P6x8Str(0, 7, "3.Speed Limit        ");
+  191          //         break;
+  192          //     case 2:
+  193          //         LCD_P8x16Str(0, 2, ">2.Servo Duty <");
+  194          //         LCD_P6x8Str(0, 5, "3.Speed Limit        ");
+  195          //         LCD_P6x8Str(0, 7, "4.KP, KI & KD        ");
+  196          //         break;
+  197          //     case 3:
+  198          //         LCD_P8x16Str(0, 2, ">3.Speed Limit<");
+  199          //         LCD_P6x8Str(0, 5, "4.KP, KI & KD        ");
+  200          //         LCD_P6x8Str(0, 7, "5.Quit & Save        ");
+  201          //         break;
+  202          //     case 4:
+  203          //         LCD_P8x16Str(0, 2, ">4.KP, KI & KD<");
+  204          //         LCD_P6x8Str(0, 5, "5.Quit & Save        ");
+  205          //         LCD_P6x8Str(0, 7, "1.Timer Value        ");
+  206          //         break;
+  207          //     case 5:
+  208          //         LCD_P8x16Str(0, 2, ">5.Quit & Save<");
+  209          //         LCD_P6x8Str(0, 5, "1.Timer Value        ");
+  210          //         LCD_P6x8Str(0, 7, "2.Servo Duty         ");
+  211          //         break;
+  212          //     }
+  213          // }
+  214          
+  215          /// @brief BIOS设置
+  216          // void BIOS()
+  217          // {
+  218          //     /*   level
+  219          //     page 1       2
+  220          //             1  Time Value  -> 1  Value Choose
+  221          //             |
+  222          //             2  Servo Duty  -> 1  Mid Duty
+  223          //             |        -> 2  Max Duty
+  224          //             |
+  225          //             3  Speed Limit -> 1  Max Speed
+  226          //             |        -> 2  Min Speed
+  227          //             |
+  228          //             4  KP, KI & KD -> 1  KP
+  229          //             |        -> 2  KI
+  230          //             |        -> 3  KD
+  231          //             |
+  232          //             5  Quit & Save -> 1  Yes
+  233          //     */
+  234          //     key0Times = 0;
+  235          //     key1Times = 0;
+  236          //     while (1) // 使停留在设置界面
+  237          //     {
+  238          //         while (key0Times == 0) // 当确认键未按下
+  239          //         {
+  240          //             page[0] = key1Times % FIRST_PAGE_NUM + 1;
+  241          //             First_Page(page[0]);
+  242          //         }
+  243          //         key1Times = 0; // 选择键清零
+  244          //         LCD_CLS();
+  245          //         switch (page[0])
+  246          //         {
+  247          //         case 1:
+  248          //             LCD_P6x8Str(0, 0, "     Timer Value     ");
+  249          //             while (key0Times == 1) // 确认键触发，进入timer设置页面，未二次确认前�
+             -�退出
+  250          //             {
+  251          //                 switch (key1Times % 2)
+  252          //                 {
+  253          //                 case 0:
+  254          //                     LCD_P8x16Str(0, 2, ">1.Time       <");
+C251 COMPILER V5.60.0,  main                                                               14/11/25  20:12:01  PAGE 5   
+
+  255          //                     LCD_P6x8Str(0, 5, "2.2.Count            ");
+  256          //                     break;
+  257          //                 case 1:
+  258          //                     LCD_P6x8Str(0, 2, "1.Time               ");
+  259          //                     LCD_P8x16Str(0, 5, ">2.Count      <");
+  260          //                 default:
+  261          //                     break;
+  262          //                 }
+  263          //                 key1Times = timerMs / 5 - 1;
+  264          //                 switch (key1Times)
+  265          //                 {
+  266          //                 case 0:
+  267          //                     timerMs = 5;
+  268          //                     LCD_P8x16Str(16, 2, "Timer = 05ms");
+  269          //                     LCD_PrintU16(80, 5, 10);
+  270          //                     break;
+  271          //                 case 1:
+  272          //                     timerMs = 10;
+  273          //                     LCD_P8x16Str(16, 2, "Timer = 10ms");
+  274          //                     LCD_PrintU16(80, 5, 15);
+  275          //                     break;
+  276          //                 case 2:
+  277          //                     timerMs = 15;
+  278          //                     LCD_P8x16Str(16, 2, "Timer = 15ms");
+  279          //                     LCD_PrintU16(80, 5, 20);
+  280          //                     break;
+  281          //                 case 3:
+  282          //                     timerMs = 20;
+  283          //                     LCD_P8x16Str(16, 2, "Timer = 20ms");
+  284          //                     LCD_PrintU16(80, 5, 0);
+  285          //                     LCD_PrintU16(86, 5, 5);
+  286          //                     break;
+  287          //                 default:
+  288          //                     key1Times = 0;
+  289          //                     break;
+  290          //                 }
+  291          //             }
+  292          //             key0Times = 0; // 二次确认，确认键清零，第一处设置结束
+  293          //             key1Times = 0;
+  294          //             break;
+  295          //         case 2:
+  296          //             LCD_P6x8Str(0, 0, "     Servo  Duty     ");
+  297          //             while (key0Times == 2)
+  298          //             {
+  299          //                 page[1] = key1Times % 2 + 1;
+  300          //                 switch (key1Times)
+  301          //                 {
+  302          //                 case 1:
+  303          //                     LCD_P8x16Str(0, 2, ">1.Mid Duty   <");
+  304          //                     LCD_P6x8Str(0, 5, "2.Max Duty           ");
+  305          //                     break;
+  306          //                 case 2:
+  307          //                     LCD_P6x8Str(0, 4, "1.Mid Duty            ");
+  308          //                     LCD_P8x16Str(0, 4, ">2.Max Duty   <");
+  309          //                     break;
+  310          //                 default:
+  311          //                     break;
+  312          //                 }
+  313          //             }
+  314          //             LCD_CLS();
+  315          //             switch (page[1])
+  316          //             {
+  317          //             case 1:
+  318          //                 LCD_P6x8Str(0, 0, "      Mid  Duty      ");
+  319          //                 while (key0Times == 1)
+  320          //                 {
+C251 COMPILER V5.60.0,  main                                                               14/11/25  20:12:01  PAGE 6   
+
+  321          //                     /* code */
+  322          //                 }
+  323          //                 break;
+  324          //             default:
+  325          //                 break;
+  326          //             }
+  327          //             break;
+  328          //         default:
+  329          //             break;
+  330          //         }
+  331          //     }
+  332          // }
+  333          
+  334          /// @brief 蜂鸣函数
+  335          /// @param freq 蜂鸣器频率
+  336          /// @param duty 蜂鸣器占空比
+  337          /// @param beepTime 蜂鸣时长（毫秒）
+  338          /// @param sleepTime 静默时长（毫秒）
+  339          void beep(uint16_t freq, uint16_t duty, uint16_t beepTime, uint16_t sleepTime)
+  340          {
+  341   1        PWM_SET_Frequency(BUZZER, freq, duty);
+  342   1        Ms_Delay(beepTime);
+  343   1        PWM_SET_Duty(BUZZER, 0);
+  344   1        Ms_Delay(sleepTime);
+  345   1      }
+  346          
+  347          /// @brief ADC读取最大最小值，为归一化做准备
+  348          void ADC_Norm_Slow()
+  349          {
+  350   1        LCD_CLS();
+  351   1        LCD_P8x16Str(0, 3, "ADC Norm Start ");
+  352   1        beep(1000, 0, 500, 500);
+  353   1        for (k = 0; k < 4; k++)
+  354   1        {
+  355   2          sprintf(getADCLine, "GET ADC %d MAX!!!", k);
+  356   2          LCD_P8x16Str(0, 3, getADCLine);
+  357   2          beep(500, 0, 500, 500);
+  358   2          for (i = 0; i < 10; i++)
+  359   2          {
+  360   3            getADC[i] = ADC_Read_Once(ADC[ADCPin[k]], ADC_12BIT);
+  361   3            Ms_Delay(10);
+  362   3          }
+  363   2          for (i = 1; i <= 10 - 1; i++) /*i代表排序轮数，总轮数=元素个数-1*/
+  364   2          {
+  365   3            for (j = 0; j < 10 - i; j++) /*j代表每轮排序次数，次数=个数-轮数-1，但j初值为0*/
+  366   3            {
+  367   4              if (getADC[j] > getADC[j + 1]) /*如果前一项比后一项大，则两项的值互换*/
+  368   4              {
+  369   5                temp = getADC[j];
+  370   5                getADC[j] = getADC[j + 1];
+  371   5                getADC[j + 1] = temp;
+  372   5              }
+  373   4            }
+  374   3          }
+  375   2          adcMax[k] = (getADC[4] + getADC[5]) / 2;
+  376   2          sprintf(getADCLine, "%dMAX=%d       ", k, adcMax[k]);
+  377   2          LCD_P8x16Str(0, 3, getADCLine);
+  378   2          beep(2000, 0, 100, 500);
+  379   2      
+  380   2          sprintf(getADCLine, "GET ADC %d MIN!!!", k);
+  381   2          LCD_P8x16Str(0, 3, getADCLine);
+  382   2          beep(500, 0, 500, 500);
+  383   2          for (i = 0; i < 10; i++)
+  384   2          {
+  385   3            getADC[i] = ADC_Read_Once(ADC[ADCPin[k]], ADC_12BIT);
+  386   3            Ms_Delay(10);
+C251 COMPILER V5.60.0,  main                                                               14/11/25  20:12:01  PAGE 7   
+
+  387   3          }
+  388   2          for (i = 1; i <= 10 - 1; i++) /*i代表排序轮数，总轮数=元素个数-1*/
+  389   2          {
+  390   3            for (j = 0; j < 10 - i; j++) /*j代表每轮排序次数，次数=个数-轮数-1，但j初值为0*/
+  391   3            {
+  392   4              if (getADC[j] > getADC[j + 1]) /*如果前一项比后一项大，则两项的值互换*/
+  393   4              {
+  394   5                temp = getADC[j];
+  395   5                getADC[j] = getADC[j + 1];
+  396   5                getADC[j + 1] = temp;
+  397   5              }
+  398   4            }
+  399   3          }
+  400   2          adcMin[k] = (getADC[4] + getADC[5]) / 2;
+  401   2          sprintf(getADCLine, "%dMIN=%d       ", k, adcMin[k]);
+  402   2          LCD_P8x16Str(0, 3, getADCLine);
+  403   2          beep(2000, 0, 100, 500);
+  404   2        }
+  405   1        LCD_CLS();
+  406   1      }
+  407          
+  408          /// @brief 从ADC中获取数值
+  409          void Get_ADC()
+  410          {
+  411   1        for (k = 0; k < 4; k++)
+  412   1        {
+  413   2          for (i = 0; i < 9; i++)
+  414   2          {
+  415   3            getADC[i] = ADC_Read_Once(ADC[ADCPin[k]], ADC_12BIT);
+  416   3          }
+  417   2          for (i = 1; i <= 9 - 1; i++) /*i代表排序轮数，总轮数=元素个数-1*/
+  418   2          {
+  419   3            for (j = 0; j < 9 - i; j++) /*j代表每轮排序次数，次数=个数-轮数-1，但j初值为0*/
+  420   3            {
+  421   4              if (getADC[j] > getADC[j + 1]) /*如果前一项比后一项大，则两项的值互换*/
+  422   4              {
+  423   5                temp = getADC[j];
+  424   5                getADC[j] = getADC[j + 1];
+  425   5                getADC[j + 1] = temp;
+  426   5              }
+  427   4            }
+  428   3          }
+  429   2          adcRaw[k] = getADC[5];
+  430   2          sprintf(getADCLine, "%d     ", adcRaw[k]);
+  431   2          LCD_P6x8Str(0, k, getADCLine);
+  432   2        }
+  433   1      }
+  434          
+  435          /// @brief 归一化，计算误差
+  436          /// @return 误差
+  437          float Normalization()
+  438          {
+  439   1        for (i = 0; i < 4; i++)
+  440   1        {
+  441   2          if (adcRaw[i] > adcMax[i]) // ADC超上限
+  442   2          {
+  443   3            adcRaw[i] = adcMax[i];
+  444   3            GPIO_Write_Bit(LED(i), 0);
+  445   3          }
+  446   2          else if (adcRaw[i] < adcMin[i]) // ADC超下限
+  447   2          {
+  448   3            adcRaw[i] = adcMin[i];
+  449   3            GPIO_Write_Bit(LED(i), 0);
+  450   3          }
+  451   2          adcAfterNorm[i] = (float)(adcRaw[i] - adcMin[i]) / (adcMax[i] - adcMin[i]); // ADC归一化至0~1的值
+  452   2        }
+C251 COMPILER V5.60.0,  main                                                               14/11/25  20:12:01  PAGE 8   
+
+  453   1        adcL = sqrt(adcAfterNorm[0] * adcAfterNorm[1]);
+  454   1        adcR = sqrt(adcAfterNorm[2] * adcAfterNorm[3]);
+  455   1        return (adcL - adcR) / (adcL + adcR);
+  456   1      }
+  457          
+  458          float PID_Calculate(float error, float kp, float ki, float kd, float maxAbsI)
+  459          {
+  460   1        float output;
+  461   1        sumOfError += error;
+  462   1        if (sumOfError > maxAbsI)
+  463   1          sumOfError = maxAbsI;
+  464   1        else if (sumOfError < -maxAbsI)
+  465   1          sumOfError = -maxAbsI;
+  466   1        output = kp * error +
+  467   1             ki * sumOfError +
+  468   1             kd * (error - lastError);
+  469   1        if (output > 1)
+  470   1          output = 1;
+  471   1        else if (output < -1)
+  472   1          output = -1;
+  473   1        lastError = error;
+  474   1        return output;
+  475   1      }
+  476          
+  477          void Servo_Control_By_Error(float errorInner)
+  478          {
+  479   1        if (errorInner > 1)
+  480   1          errorInner = 1;
+  481   1        else if (errorInner < -1)
+  482   1          errorInner = -1;
+  483   1        PWM_SET_Frequency(SERVO, 50, midDutyOfServo + (int)maxChangeDuty * errorInner);
+  484   1      }
+  485          
+  486          void Go(uint16_t minSpeed, uint16_t maxSpeed)
+  487          {
+  488   1        int speed = (int)((maxSpeed - minSpeed) * abs(lastError) / 2) + minSpeed;
+  489   1        if (speed > maxSpeed)
+  490   1          speed = maxSpeed;
+  491   1        else if (speed < minSpeed)
+  492   1          speed = minSpeed;
+  493   1        PWM_SET_Duty(MOTOR_L, 10000 - speed);
+  494   1        PWM_SET_Duty(MOTOR_R, 10000 - speed);
+  495   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =      1984     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =       140         14
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =       138     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,623 @@
+C251 COMPILER V5.60.0,  BMI088driver                                                       11/11/25  22:26:25  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE BMI088driver
+OBJECT MODULE PLACED IN .\Objects\BMI088driver.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\..\..\Libraries\boards\src\BMI088driver.c XSMALL BROW
+                    -SE INCDIR(..\..\..\Libraries\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG
+                    - PRINT(.\Listings\BMI088driver.lst) TABS(2) OBJECT(.\Objects\BMI088driver.obj) 
+
+stmt  level    source
+
+    1          #include "BMI088driver.h"
+    2          #include "BMI088reg.h"
+    3          #include "BMI088Middleware.h"
+    4          
+    5          
+    6          float BMI088_ACCEL_SEN = BMI088_ACCEL_3G_SEN;
+    7          float BMI088_GYRO_SEN = BMI088_GYRO_2000_SEN;
+    8          
+    9          
+   10          
+   11          #if defined(BMI088_USE_SPI)
+   12          
+   13          #define BMI088_accel_write_single_reg(reg, data_t) \
+   14              {                                            \
+   15                  BMI088_ACCEL_NS_L();                     \
+   16                  BMI088_write_single_reg((reg), (data_t));  \
+   17                  BMI088_ACCEL_NS_H();                     \
+   18              }
+   19          #define BMI088_accel_read_single_reg(reg, data_t) \
+   20              {                                           \
+   21                  BMI088_ACCEL_NS_L();                    \
+   22                  BMI088_read_write_byte((reg) | 0x80);   \
+   23                  BMI088_read_write_byte(0x55);           \
+   24                  (data_t) = BMI088_read_write_byte(0x55);  \
+   25                  BMI088_ACCEL_NS_H();                    \
+   26              }
+   27          //#define BMI088_accel_write_muli_reg( reg,  data, len) { BMI088_ACCEL_NS_L(); BMI088_write_muli_reg(reg,
+             - data, len); BMI088_ACCEL_NS_H(); }
+   28          #define BMI088_accel_read_muli_reg(reg, data_t, len) \
+   29              {                                              \
+   30                  BMI088_ACCEL_NS_L();                       \
+   31                  BMI088_read_write_byte((reg) | 0x80);      \
+   32                  BMI088_read_muli_reg(reg, data_t, len);      \
+   33                  BMI088_ACCEL_NS_H();                       \
+   34              }
+   35          
+   36          #define BMI088_gyro_write_single_reg(reg, data_t) \
+   37              {                                           \
+   38                  BMI088_GYRO_NS_L();                     \
+   39                  BMI088_write_single_reg((reg), (data_t)); \
+   40                  BMI088_GYRO_NS_H();                     \
+   41              }
+   42          #define BMI088_gyro_read_single_reg(reg, data_t)  \
+   43              {                                           \
+   44                  BMI088_GYRO_NS_L();                     \
+   45                  BMI088_read_single_reg((reg), &(data_t)); \
+   46                  BMI088_GYRO_NS_H();                     \
+   47              }
+   48          //#define BMI088_gyro_write_muli_reg( reg,  data, len) { BMI088_GYRO_NS_L(); BMI088_write_muli_reg( ( reg
+             - ), ( data ), ( len ) ); BMI088_GYRO_NS_H(); }
+   49          #define BMI088_gyro_read_muli_reg(reg, data_t, len)   \
+   50              {                                               \
+   51                  BMI088_GYRO_NS_L();                         \
+   52                  BMI088_read_muli_reg((reg), (data_t), (len)); \
+   53                  BMI088_GYRO_NS_H();                         \
+   54              }
+   55          
+C251 COMPILER V5.60.0,  BMI088driver                                                       11/11/25  22:26:25  PAGE 2   
+
+   56          static void BMI088_write_single_reg(uint8_t reg, uint8_t data_t);
+   57          static void BMI088_read_single_reg(uint8_t reg, uint8_t *return_data);
+   58          //static void BMI088_write_muli_reg(uint8_t reg, uint8_t* buf, uint8_t len );
+   59          static void BMI088_read_muli_reg(uint8_t reg, uint8_t *buf, uint8_t len);
+   60          
+   61          #elif defined(BMI088_USE_IIC)
+               
+               
+               #endif
+   65          
+   66          static uint8_t write_BMI088_accel_reg_data_error[BMI088_WRITE_ACCEL_REG_NUM][3] =
+   67              {
+   68                  {BMI088_ACC_PWR_CTRL, BMI088_ACC_ENABLE_ACC_ON, BMI088_ACC_PWR_CTRL_ERROR},
+   69                  {BMI088_ACC_PWR_CONF, BMI088_ACC_PWR_ACTIVE_MODE, BMI088_ACC_PWR_CONF_ERROR},
+   70                  {BMI088_ACC_CONF,  BMI088_ACC_NORMAL| BMI088_ACC_800_HZ | BMI088_ACC_CONF_MUST_Set, BMI088_ACC_CO
+             -NF_ERROR},
+   71                  {BMI088_ACC_RANGE, BMI088_ACC_RANGE_3G, BMI088_ACC_RANGE_ERROR},
+   72                  {BMI088_INT1_IO_CTRL, BMI088_ACC_INT1_IO_ENABLE | BMI088_ACC_INT1_GPIO_PP | BMI088_ACC_INT1_GPIO_
+             -LOW, BMI088_INT1_IO_CTRL_ERROR},
+   73                  {BMI088_INT_MAP_DATA, BMI088_ACC_INT1_DRDY_INTERRUPT, BMI088_INT_MAP_DATA_ERROR}
+   74          
+   75          };
+   76          
+   77          static uint8_t write_BMI088_gyro_reg_data_error[BMI088_WRITE_GYRO_REG_NUM][3] =
+   78              {
+   79                  {BMI088_GYRO_RANGE, BMI088_GYRO_2000, BMI088_GYRO_RANGE_ERROR},
+   80                  {BMI088_GYRO_BANDWIDTH, BMI088_GYRO_1000_116_HZ | BMI088_GYRO_BANDWIDTH_MUST_Set, BMI088_GYRO_BAN
+             -DWIDTH_ERROR},
+   81                  {BMI088_GYRO_LPM1, BMI088_GYRO_NORMAL_MODE, BMI088_GYRO_LPM1_ERROR},
+   82                  {BMI088_GYRO_CTRL, BMI088_DRDY_ON, BMI088_GYRO_CTRL_ERROR},
+   83                  {BMI088_GYRO_INT3_INT4_IO_CONF, BMI088_GYRO_INT3_GPIO_PP | BMI088_GYRO_INT3_GPIO_LOW, BMI088_GYRO
+             -_INT3_INT4_IO_CONF_ERROR},
+   84                  {BMI088_GYRO_INT3_INT4_IO_MAP, BMI088_GYRO_DRDY_IO_INT3, BMI088_GYRO_INT3_INT4_IO_MAP_ERROR}
+   85          
+   86          };
+   87          
+   88          uint8_t BMI088_init(void)
+   89          {
+   90   1          uint8_t error = BMI088_NO_ERROR;
+   91   1          // GPIO and SPI  Init .
+   92   1          BMI088_GPIO_init();
+   93   1          BMI088_com_init();
+   94   1      
+   95   1          // self test pass and init
+   96   1          if (bmi088_accel_self_test() != BMI088_NO_ERROR)
+   97   1          {
+   98   2              error |= BMI088_SELF_TEST_ACCEL_ERROR;
+   99   2          }
+  100   1          else
+  101   1          {
+  102   2              error |= bmi088_accel_init();
+  103   2          }
+  104   1      
+  105   1          if (bmi088_gyro_self_test() != BMI088_NO_ERROR)
+  106   1          {
+  107   2              error |= BMI088_SELF_TEST_GYRO_ERROR;
+  108   2          }
+  109   1          else
+  110   1          {
+  111   2              error |= bmi088_gyro_init();
+  112   2          }
+  113   1      
+  114   1          return error;
+  115   1      }
+  116          
+  117          uint8_t bmi088_accel_init(void)
+C251 COMPILER V5.60.0,  BMI088driver                                                       11/11/25  22:26:25  PAGE 3   
+
+  118          {
+  119   1          volatile uint8_t res = 0;
+  120   1          uint8_t write_reg_num = 0;
+  121   1      
+  122   1          //check commiunication
+  123   1          BMI088_accel_read_single_reg(BMI088_ACC_CHIP_ID, res);
+  124   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  125   1          BMI088_accel_read_single_reg(BMI088_ACC_CHIP_ID, res);
+  126   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  127   1      
+  128   1          //accel software reset
+  129   1          BMI088_accel_write_single_reg(BMI088_ACC_SOFTRESET, BMI088_ACC_SOFTRESET_VALUE);
+  130   1          BMI088_delay_ms(BMI088_LONG_DELAY_TIME);
+  131   1      
+  132   1          //check commiunication is normal after reset
+  133   1          BMI088_accel_read_single_reg(BMI088_ACC_CHIP_ID, res);
+  134   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  135   1          BMI088_accel_read_single_reg(BMI088_ACC_CHIP_ID, res);
+  136   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  137   1      
+  138   1          // check the "who am I"
+  139   1          if (res != BMI088_ACC_CHIP_ID_VALUE)
+  140   1          {
+  141   2              return BMI088_NO_SENSOR;
+  142   2          }
+  143   1      
+  144   1          //set accel sonsor config and check
+  145   1          for (write_reg_num = 0; write_reg_num < BMI088_WRITE_ACCEL_REG_NUM; write_reg_num++)
+  146   1          {
+  147   2      
+  148   2              BMI088_accel_write_single_reg(write_BMI088_accel_reg_data_error[write_reg_num][0], write_BMI088_a
+             -ccel_reg_data_error[write_reg_num][1]);
+  149   2              BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  150   2      
+  151   2              BMI088_accel_read_single_reg(write_BMI088_accel_reg_data_error[write_reg_num][0], res);
+  152   2              BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  153   2      
+  154   2              if (res != write_BMI088_accel_reg_data_error[write_reg_num][1])
+  155   2              {
+  156   3                  return write_BMI088_accel_reg_data_error[write_reg_num][2];
+  157   3              }
+  158   2          }
+  159   1          return BMI088_NO_ERROR;
+  160   1      }
+  161          
+  162          uint8_t bmi088_gyro_init(void)
+  163          {
+  164   1          uint8_t write_reg_num = 0;
+  165   1          uint8_t res = 0;
+  166   1      
+  167   1          //check commiunication
+  168   1          BMI088_gyro_read_single_reg(BMI088_GYRO_CHIP_ID, res);
+  169   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  170   1          BMI088_gyro_read_single_reg(BMI088_GYRO_CHIP_ID, res);
+  171   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  172   1      
+  173   1          //reset the gyro sensor
+  174   1          BMI088_gyro_write_single_reg(BMI088_GYRO_SOFTRESET, BMI088_GYRO_SOFTRESET_VALUE);
+  175   1          BMI088_delay_ms(BMI088_LONG_DELAY_TIME);
+  176   1          //check commiunication is normal after reset
+  177   1          BMI088_gyro_read_single_reg(BMI088_GYRO_CHIP_ID, res);
+  178   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  179   1          BMI088_gyro_read_single_reg(BMI088_GYRO_CHIP_ID, res);
+  180   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  181   1      
+  182   1          // check the "who am I"
+C251 COMPILER V5.60.0,  BMI088driver                                                       11/11/25  22:26:25  PAGE 4   
+
+  183   1          if (res != BMI088_GYRO_CHIP_ID_VALUE)
+  184   1          {
+  185   2              return BMI088_NO_SENSOR;
+  186   2          }
+  187   1      
+  188   1          //set gyro sonsor config and check
+  189   1          for (write_reg_num = 0; write_reg_num < BMI088_WRITE_GYRO_REG_NUM; write_reg_num++)
+  190   1          {
+  191   2      
+  192   2              BMI088_gyro_write_single_reg(write_BMI088_gyro_reg_data_error[write_reg_num][0], write_BMI088_gyr
+             -o_reg_data_error[write_reg_num][1]);
+  193   2              BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  194   2      
+  195   2              BMI088_gyro_read_single_reg(write_BMI088_gyro_reg_data_error[write_reg_num][0], res);
+  196   2              BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  197   2      
+  198   2              if (res != write_BMI088_gyro_reg_data_error[write_reg_num][1])
+  199   2              {
+  200   3                  return write_BMI088_gyro_reg_data_error[write_reg_num][2];
+  201   3              }
+  202   2          }
+  203   1      
+  204   1          return BMI088_NO_ERROR;
+  205   1      }
+  206          
+  207          uint8_t bmi088_accel_self_test(void)
+  208          {
+  209   1      
+  210   1          int16_t self_test_accel[2][3];
+  211   1      
+  212   1          uint8_t buf[6] = {0, 0, 0, 0, 0, 0};
+  213   1          volatile uint8_t res = 0;
+  214   1      
+  215   1          uint8_t write_reg_num = 0;
+  216   1      
+  217   1          static const uint8_t write_BMI088_ACCEL_self_test_Reg_Data_Error[6][3] =
+  218   1              {
+  219   1                  {BMI088_ACC_CONF, BMI088_ACC_NORMAL | BMI088_ACC_1600_HZ | BMI088_ACC_CONF_MUST_Set, BMI088_A
+             -CC_CONF_ERROR},
+  220   1                  {BMI088_ACC_PWR_CTRL, BMI088_ACC_ENABLE_ACC_ON, BMI088_ACC_PWR_CTRL_ERROR},
+  221   1                  {BMI088_ACC_RANGE, BMI088_ACC_RANGE_24G, BMI088_ACC_RANGE_ERROR},
+  222   1                  {BMI088_ACC_PWR_CONF, BMI088_ACC_PWR_ACTIVE_MODE, BMI088_ACC_PWR_CONF_ERROR},
+  223   1                  {BMI088_ACC_SELF_TEST, BMI088_ACC_SELF_TEST_POSITIVE_SIGNAL, BMI088_ACC_PWR_CONF_ERROR},
+  224   1                  {BMI088_ACC_SELF_TEST, BMI088_ACC_SELF_TEST_NEGATIVE_SIGNAL, BMI088_ACC_PWR_CONF_ERROR}
+  225   1      
+  226   1              };
+  227   1      
+  228   1          //check commiunication is normal
+  229   1          BMI088_accel_read_single_reg(BMI088_ACC_CHIP_ID, res);
+  230   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  231   1          BMI088_accel_read_single_reg(BMI088_ACC_CHIP_ID, res);
+  232   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  233   1      
+  234   1          // reset  bmi088 accel sensor and wait for > 50ms
+  235   1          BMI088_accel_write_single_reg(BMI088_ACC_SOFTRESET, BMI088_ACC_SOFTRESET_VALUE);
+  236   1          BMI088_delay_ms(BMI088_LONG_DELAY_TIME);
+  237   1      
+  238   1          //check commiunication is normal
+  239   1          BMI088_accel_read_single_reg(BMI088_ACC_CHIP_ID, res);
+  240   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  241   1          BMI088_accel_read_single_reg(BMI088_ACC_CHIP_ID, res);
+  242   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  243   1      
+  244   1          if (res != BMI088_ACC_CHIP_ID_VALUE)
+  245   1          {
+  246   2              return BMI088_NO_SENSOR;
+C251 COMPILER V5.60.0,  BMI088driver                                                       11/11/25  22:26:25  PAGE 5   
+
+  247   2          }
+  248   1      
+  249   1          // set the accel register
+  250   1          for (write_reg_num = 0; write_reg_num < 4; write_reg_num++)
+  251   1          {
+  252   2      
+  253   2              BMI088_accel_write_single_reg(write_BMI088_ACCEL_self_test_Reg_Data_Error[write_reg_num][0], writ
+             -e_BMI088_ACCEL_self_test_Reg_Data_Error[write_reg_num][1]);
+  254   2              BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  255   2      
+  256   2              BMI088_accel_read_single_reg(write_BMI088_ACCEL_self_test_Reg_Data_Error[write_reg_num][0], res);
+  257   2              BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  258   2      
+  259   2              if (res != write_BMI088_ACCEL_self_test_Reg_Data_Error[write_reg_num][1])
+  260   2              {
+  261   3                  return write_BMI088_ACCEL_self_test_Reg_Data_Error[write_reg_num][2];
+  262   3              }
+  263   2              // accel conf and accel range  . the two register set need wait for > 50ms
+  264   2              BMI088_delay_ms(BMI088_LONG_DELAY_TIME);
+  265   2          }
+  266   1      
+  267   1          // self test include postive and negative
+  268   1          for (write_reg_num = 0; write_reg_num < 2; write_reg_num++)
+  269   1          {
+  270   2      
+  271   2              BMI088_accel_write_single_reg(write_BMI088_ACCEL_self_test_Reg_Data_Error[write_reg_num + 4][0], 
+             -write_BMI088_ACCEL_self_test_Reg_Data_Error[write_reg_num + 4][1]);
+  272   2              BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  273   2      
+  274   2              BMI088_accel_read_single_reg(write_BMI088_ACCEL_self_test_Reg_Data_Error[write_reg_num + 4][0], r
+             -es);
+  275   2              BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  276   2      
+  277   2              if (res != write_BMI088_ACCEL_self_test_Reg_Data_Error[write_reg_num + 4][1])
+  278   2              {
+  279   3                  return write_BMI088_ACCEL_self_test_Reg_Data_Error[write_reg_num + 4][2];
+  280   3              }
+  281   2              // accel conf and accel range  . the two register set need wait for > 50ms
+  282   2              BMI088_delay_ms(BMI088_LONG_DELAY_TIME);
+  283   2      
+  284   2              // read response accel
+  285   2              BMI088_accel_read_muli_reg(BMI088_ACCEL_XOUT_L, buf, 6);
+  286   2      
+  287   2              self_test_accel[write_reg_num][0] = (int16_t)((buf[1]) << 8) | buf[0];
+  288   2              self_test_accel[write_reg_num][1] = (int16_t)((buf[3]) << 8) | buf[2];
+  289   2              self_test_accel[write_reg_num][2] = (int16_t)((buf[5]) << 8) | buf[4];
+  290   2          }
+  291   1      
+  292   1          //set self test off
+  293   1          BMI088_accel_write_single_reg(BMI088_ACC_SELF_TEST, BMI088_ACC_SELF_TEST_OFF);
+  294   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  295   1          BMI088_accel_read_single_reg(BMI088_ACC_SELF_TEST, res);
+  296   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  297   1      
+  298   1          if (res != (BMI088_ACC_SELF_TEST_OFF))
+  299   1          {
+  300   2              return BMI088_ACC_SELF_TEST_ERROR;
+  301   2          }
+  302   1      
+  303   1          //reset the accel sensor
+  304   1          BMI088_accel_write_single_reg(BMI088_ACC_SOFTRESET, BMI088_ACC_SOFTRESET_VALUE);
+  305   1          BMI088_delay_ms(BMI088_LONG_DELAY_TIME);
+  306   1      
+  307   1          if ((self_test_accel[0][0] - self_test_accel[1][0] < 1365) || (self_test_accel[0][1] - self_test_acce
+             -l[1][1] < 1365) || (self_test_accel[0][2] - self_test_accel[1][2] < 680))
+  308   1          {
+C251 COMPILER V5.60.0,  BMI088driver                                                       11/11/25  22:26:25  PAGE 6   
+
+  309   2              return BMI088_SELF_TEST_ACCEL_ERROR;
+  310   2          }
+  311   1      
+  312   1          BMI088_accel_read_single_reg(BMI088_ACC_CHIP_ID, res);
+  313   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  314   1          BMI088_accel_read_single_reg(BMI088_ACC_CHIP_ID, res);
+  315   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  316   1      
+  317   1          return BMI088_NO_ERROR;
+  318   1      }
+  319          uint8_t bmi088_gyro_self_test(void)
+  320          {
+  321   1          uint8_t res = 0;
+  322   1          uint8_t retry = 0;
+  323   1          //check commiunication is normal
+  324   1          BMI088_gyro_read_single_reg(BMI088_GYRO_CHIP_ID, res);
+  325   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  326   1          BMI088_gyro_read_single_reg(BMI088_GYRO_CHIP_ID, res);
+  327   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  328   1          //reset the gyro sensor
+  329   1          BMI088_gyro_write_single_reg(BMI088_GYRO_SOFTRESET, BMI088_GYRO_SOFTRESET_VALUE);
+  330   1          BMI088_delay_ms(BMI088_LONG_DELAY_TIME);
+  331   1          //check commiunication is normal after reset
+  332   1          BMI088_gyro_read_single_reg(BMI088_GYRO_CHIP_ID, res);
+  333   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  334   1          BMI088_gyro_read_single_reg(BMI088_GYRO_CHIP_ID, res);
+  335   1          BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  336   1      
+  337   1          BMI088_gyro_write_single_reg(BMI088_GYRO_SELF_TEST, BMI088_GYRO_TRIG_BIST);
+  338   1          BMI088_delay_ms(BMI088_LONG_DELAY_TIME);
+  339   1      
+  340   1          do
+  341   1          {
+  342   2      
+  343   2              BMI088_gyro_read_single_reg(BMI088_GYRO_SELF_TEST, res);
+  344   2              BMI088_delay_us(BMI088_COM_WAIT_SENSOR_TIME);
+  345   2              retry++;
+  346   2          } while (!(res & BMI088_GYRO_BIST_RDY) && retry < 10);
+  347   1      
+  348   1          if (retry == 10)
+  349   1          {
+  350   2              return BMI088_SELF_TEST_GYRO_ERROR;
+  351   2          }
+  352   1      
+  353   1          if (res & BMI088_GYRO_BIST_FAIL)
+  354   1          {
+  355   2              return BMI088_SELF_TEST_GYRO_ERROR;
+  356   2          }
+  357   1      
+  358   1          return BMI088_NO_ERROR;
+  359   1      }
+  360          
+  361          void BMI088_read_gyro_who_am_i(void)
+  362          {
+  363   1          uint8_t buf;
+  364   1          BMI088_gyro_read_single_reg(BMI088_GYRO_CHIP_ID, buf);
+  365   1      }
+  366          
+  367          
+  368          void BMI088_read_accel_who_am_i(void)
+  369          {
+  370   1          volatile uint8_t buf;
+  371   1          BMI088_accel_read_single_reg(BMI088_ACC_CHIP_ID, buf);
+  372   1          buf = 0;
+  373   1      
+  374   1      }
+C251 COMPILER V5.60.0,  BMI088driver                                                       11/11/25  22:26:25  PAGE 7   
+
+  375          
+  376          
+  377          
+  378          
+  379          
+  380          void BMI088_temperature_read_over(uint8_t *rx_buf, float *temperate)
+  381          {
+  382   1          int16_t bmi088_raw_temp;
+  383   1          bmi088_raw_temp = (int16_t)((rx_buf[0] << 3) | (rx_buf[1] >> 5));
+  384   1      
+  385   1          if (bmi088_raw_temp > 1023)
+  386   1          {
+  387   2              bmi088_raw_temp -= 2048;
+  388   2          }
+  389   1          *temperate = bmi088_raw_temp * BMI088_TEMP_FACTOR + BMI088_TEMP_OFFSET;
+  390   1      
+  391   1      }
+  392          
+  393          void BMI088_accel_read_over(uint8_t *rx_buf, float accel[3], float *time)
+  394          {
+  395   1          int16_t bmi088_raw_temp;
+  396   1          uint32_t sensor_time;
+  397   1          bmi088_raw_temp = (int16_t)((rx_buf[1]) << 8) | rx_buf[0];
+  398   1          accel[0] = bmi088_raw_temp * BMI088_ACCEL_SEN;
+  399   1          bmi088_raw_temp = (int16_t)((rx_buf[3]) << 8) | rx_buf[2];
+  400   1          accel[1] = bmi088_raw_temp * BMI088_ACCEL_SEN;
+  401   1          bmi088_raw_temp = (int16_t)((rx_buf[5]) << 8) | rx_buf[4];
+  402   1          accel[2] = bmi088_raw_temp * BMI088_ACCEL_SEN;
+  403   1          sensor_time = (uint32_t)((rx_buf[8] << 16) | (rx_buf[7] << 8) | rx_buf[6]);
+  404   1          *time = sensor_time * 39.0625f;
+  405   1      
+  406   1      }
+  407          
+  408          void BMI088_gyro_read_over(uint8_t *rx_buf, float gyro[3])
+  409          {
+  410   1          int16_t bmi088_raw_temp;
+  411   1          bmi088_raw_temp = (int16_t)((rx_buf[1]) << 8) | rx_buf[0];
+  412   1          gyro[0] = bmi088_raw_temp * BMI088_GYRO_SEN;
+  413   1          bmi088_raw_temp = (int16_t)((rx_buf[3]) << 8) | rx_buf[2];
+  414   1          gyro[1] = bmi088_raw_temp * BMI088_GYRO_SEN;
+  415   1          bmi088_raw_temp = (int16_t)((rx_buf[5]) << 8) | rx_buf[4];
+  416   1          gyro[2] = bmi088_raw_temp * BMI088_GYRO_SEN;
+  417   1      }
+  418          
+  419          void BMI088_read(float gyro[3], float accel[3], float *temperate)
+  420          {
+  421   1          uint8_t buf[8] = {0, 0, 0, 0, 0, 0};
+  422   1          int16_t bmi088_raw_temp;
+  423   1      
+  424   1          BMI088_accel_read_muli_reg(BMI088_ACCEL_XOUT_L, buf, 6);
+  425   1      
+  426   1          bmi088_raw_temp = (int16_t)((buf[1]) << 8) | buf[0];
+  427   1          accel[0] = bmi088_raw_temp * BMI088_ACCEL_SEN;
+  428   1          bmi088_raw_temp = (int16_t)((buf[3]) << 8) | buf[2];
+  429   1          accel[1] = bmi088_raw_temp * BMI088_ACCEL_SEN;
+  430   1          bmi088_raw_temp = (int16_t)((buf[5]) << 8) | buf[4];
+  431   1          accel[2] = bmi088_raw_temp * BMI088_ACCEL_SEN;
+  432   1      
+  433   1          BMI088_gyro_read_muli_reg(BMI088_GYRO_CHIP_ID, buf, 8);
+  434   1          if(buf[0] == BMI088_GYRO_CHIP_ID_VALUE)
+  435   1          {
+  436   2              bmi088_raw_temp = (int16_t)((buf[3]) << 8) | buf[2];
+  437   2              gyro[0] = bmi088_raw_temp * BMI088_GYRO_SEN;
+  438   2              bmi088_raw_temp = (int16_t)((buf[5]) << 8) | buf[4];
+  439   2              gyro[1] = bmi088_raw_temp * BMI088_GYRO_SEN;
+  440   2              bmi088_raw_temp = (int16_t)((buf[7]) << 8) | buf[6];
+C251 COMPILER V5.60.0,  BMI088driver                                                       11/11/25  22:26:25  PAGE 8   
+
+  441   2              gyro[2] = bmi088_raw_temp * BMI088_GYRO_SEN;
+  442   2          }
+  443   1          BMI088_accel_read_muli_reg(BMI088_TEMP_M, buf, 2);
+  444   1      
+  445   1          bmi088_raw_temp = (int16_t)((buf[0] << 3) | (buf[1] >> 5));
+  446   1      
+  447   1          if (bmi088_raw_temp > 1023)
+  448   1          {
+  449   2              bmi088_raw_temp -= 2048;
+  450   2          }
+  451   1      
+  452   1          *temperate = bmi088_raw_temp * BMI088_TEMP_FACTOR + BMI088_TEMP_OFFSET;
+  453   1      }
+  454          
+  455          uint32_t get_BMI088_sensor_time(void)
+  456          {
+  457   1          uint32_t sensor_time = 0;
+  458   1          uint8_t buf[3];
+  459   1          BMI088_accel_read_muli_reg(BMI088_SENSORTIME_DATA_L, buf, 3);
+  460   1      
+  461   1          sensor_time = (uint32_t)((buf[2] << 16) | (buf[1] << 8) | (buf[0]));
+  462   1      
+  463   1          return sensor_time;
+  464   1      }
+  465          
+  466          float get_BMI088_temperate(void)
+  467          {
+  468   1          uint8_t buf[2];
+  469   1          float temperate;
+  470   1          int16_t temperate_raw_temp;
+  471   1      
+  472   1          BMI088_accel_read_muli_reg(BMI088_TEMP_M, buf, 2);
+  473   1      
+  474   1          temperate_raw_temp = (int16_t)((buf[0] << 3) | (buf[1] >> 5));
+  475   1      
+  476   1          if (temperate_raw_temp > 1023)
+  477   1          {
+  478   2              temperate_raw_temp -= 2048;
+  479   2          }
+  480   1      
+  481   1          temperate = temperate_raw_temp * BMI088_TEMP_FACTOR + BMI088_TEMP_OFFSET;
+  482   1      
+  483   1          return temperate;
+  484   1      }
+  485          
+  486          void get_BMI088_gyro(int16_t gyro[3])
+  487          {
+  488   1          uint8_t buf[6] = {0, 0, 0, 0, 0, 0};
+  489   1          int16_t gyro_raw_temp;
+  490   1      
+  491   1          BMI088_gyro_read_muli_reg(BMI088_GYRO_X_L, buf, 6);
+  492   1      
+  493   1          gyro_raw_temp = (int16_t)((buf[1]) << 8) | buf[0];
+  494   1          gyro[0] = gyro_raw_temp ;
+  495   1          gyro_raw_temp = (int16_t)((buf[3]) << 8) | buf[2];
+  496   1          gyro[1] = gyro_raw_temp ;
+  497   1          gyro_raw_temp = (int16_t)((buf[5]) << 8) | buf[4];
+  498   1          gyro[2] = gyro_raw_temp ;
+  499   1      }
+  500          
+  501          void get_BMI088_accel(float accel[3])
+  502          {
+  503   1          uint8_t buf[6] = {0, 0, 0, 0, 0, 0};
+  504   1          int16_t accel_raw_temp;
+  505   1      
+  506   1          BMI088_accel_read_muli_reg(BMI088_ACCEL_XOUT_L, buf, 6);
+C251 COMPILER V5.60.0,  BMI088driver                                                       11/11/25  22:26:25  PAGE 9   
+
+  507   1      
+  508   1          accel_raw_temp = (int16_t)((buf[1]) << 8) | buf[0];
+  509   1          accel[0] = accel_raw_temp * BMI088_ACCEL_SEN;
+  510   1          accel_raw_temp = (int16_t)((buf[3]) << 8) | buf[2];
+  511   1          accel[1] = accel_raw_temp * BMI088_ACCEL_SEN;
+  512   1          accel_raw_temp = (int16_t)((buf[5]) << 8) | buf[4];
+  513   1          accel[2] = accel_raw_temp * BMI088_ACCEL_SEN;
+  514   1      }
+  515          
+  516          #if defined(BMI088_USE_SPI)
+  517          
+  518          static void BMI088_write_single_reg(uint8_t reg, uint8_t data_t)
+  519          {
+  520   1          BMI088_read_write_byte(reg);
+  521   1          BMI088_read_write_byte(data_t);
+  522   1      }
+  523          
+  524          static void BMI088_read_single_reg(uint8_t reg, uint8_t *return_data)
+  525          {
+  526   1          BMI088_read_write_byte(reg | 0x80);
+  527   1          *return_data = BMI088_read_write_byte(0x55);
+  528   1      }
+  529          
+  530          //static void BMI088_write_muli_reg(uint8_t reg, uint8_t* buf, uint8_t len )
+  531          //{
+  532          //    BMI088_read_write_byte( reg );
+  533          //    while( len != 0 )
+  534          //    {
+  535          
+  536          //        BMI088_read_write_byte( *buf );
+  537          //        buf ++;
+  538          //        len --;
+  539          //    }
+  540          
+  541          //}
+  542          
+  543          static void BMI088_read_muli_reg(uint8_t reg, uint8_t *buf, uint8_t len)
+  544          {
+  545   1          BMI088_read_write_byte(reg | 0x80);
+  546   1      
+  547   1          while (len != 0)
+  548   1          {
+  549   2      
+  550   2              *buf = BMI088_read_write_byte(0x55);
+  551   2              buf++;
+  552   2              len--;
+  553   2          }
+  554   1      }
+  555          #elif defined(BMI088_USE_IIC)
+               
+               #endif
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =      2704     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        44         62
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+C251 COMPILER V5.60.0,  BMI088driver                                                       11/11/25  22:26:25  PAGE 10  
+
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =       104     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

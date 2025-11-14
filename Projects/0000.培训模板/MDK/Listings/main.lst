@@ -1,0 +1,77 @@
+C251 COMPILER V5.60.0,  main                                                               27/09/25  17:16:20  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE main
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\PIE\software\C251\BIN\C251.EXE ..\USER\src\main.c XSMALL BROWSE INCDIR(..\..\..\Libraries\boards
+                    -\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG PRINT(.\Listings\main.lst) TABS(2)
+                    - OBJECT(.\Objects\main.obj) 
+
+stmt  level    source
+
+    1          /********************************************************************************************************
+             -*************
+    2           *     COPYRIGHT NOTICE
+    3           *     Copyright (c) 2023,CNU_W.PIE
+    4           *     All rights reserved.
+    5           *
+    6           *     除注明出处外，以下所有内容版权均属胖胖个人所有，未经允许，不得用于商业用途，
+    7           *     修改内容时必须保留PP的版权声明。
+    8           *     Except where indicated, the copyright of all the contents below is owned by PP 
+    9           *     and can not be used for commercial purposes without permission. 
+   10           *     The copyright notice of PP must be preserved when modifying the content.
+   11           *
+   12           * @file       main.h
+   13           * @brief      主函数
+   14           * @author     胖胖
+   15           * @version    v1.0
+   16           * @note       NULL
+   17           * @date       2023-07-26
+   18           ********************************************************************************************************
+             -************/
+   19          
+   20          #include "main.h" 
+   21          
+   22          void main(void)                                     //必要的主函数
+   23          {                                                   //主函数的大括号
+   24   1        /*初始化*/
+   25   1        Board_Init();                                     //培训底板初始化
+   26   1        GPIO_Init(GPIO_P3, GPIO_Pin_4, GPIO_OUT_PP);      //将P34引脚初始化为输出
+   27   1        
+   28   1        
+   29   1        
+   30   1        while(1)
+   31   1        {                                                 //while循环的大括号
+   32   2          /*对外设的操作*/
+   33   2          
+   34   2          
+   35   2          
+   36   2        }                                                 //while循环的大括号
+   37   1      }                                                   //主函数的大括号
+   38          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =        18     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+C251 COMPILER V5.60.0,  main                                                               27/09/25  17:16:20  PAGE 2   
+
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

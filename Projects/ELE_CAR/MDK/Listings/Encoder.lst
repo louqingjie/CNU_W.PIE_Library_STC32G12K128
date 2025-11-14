@@ -1,0 +1,70 @@
+C251 COMPILER V5.60.0,  Encoder                                                            11/11/25  22:26:25  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE Encoder
+OBJECT MODULE PLACED IN .\Objects\Encoder.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\..\..\Libraries\boards\src\Encoder.c XSMALL BROWSE IN
+                    -CDIR(..\..\..\Libraries\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG PRIN
+                    -T(.\Listings\Encoder.lst) TABS(2) OBJECT(.\Objects\Encoder.obj) 
+
+stmt  level    source
+
+    1          #include "Encoder.h"
+    2          #include "CNU_PIE_TIMER.h"
+    3          #include "CNU_PIE_GPIO.h"
+    4          
+    5          #define Encoder_Dir   P52  //编码器方向引脚定义 
+    6          #define Encoder_Tim   P04  //编码器计数引脚定义 
+    7          
+    8          Encoder_TypeDef Encoder_X;
+    9          
+   10          void Encoder_Init(void)
+   11          {
+   12   1        Timer_Count_Init(TIMER3_P04);//编码器脉冲引脚捕获引脚初始化
+   13   1        
+   14   1        GPIO_Init(GPIO_P5 , GPIO_Pin_2 , GPIO_PullUp);
+   15   1      }
+   16          
+   17          int Encoder_Count_Read(void)
+   18          {
+   19   1        Encoder_X.pouse = Timer_Count_Read(TIMER3_P04); 
+   20   1        
+   21   1        if(Encoder_Dir==0) Encoder_X.pouse_t = Encoder_X.pouse_t - (Encoder_X.pouse - Encoder_X.pouse_last);
+   22   1                        else Encoder_X.pouse_t = Encoder_X.pouse_t + (Encoder_X.pouse - Encoder_X.pouse_last);
+   23   1        
+   24   1        Encoder_X.pouse_last = Encoder_X.pouse;
+   25   1        
+   26   1        return Encoder_X.pouse_t;
+   27   1      }
+   28          
+   29          void Encoder_Clear(void)
+   30          {
+   31   1        Timer_Count_Clear(TIMER3_P04);
+   32   1        Encoder_X.pouse = 0;
+   33   1        Encoder_X.pouse_last = 0;
+   34   1        Encoder_X.pouse_t = 0;
+   35   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       104     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        11     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

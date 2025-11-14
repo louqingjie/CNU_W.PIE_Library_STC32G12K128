@@ -1,0 +1,12 @@
+Build target 'Project'
+compiling main.c...
+linking...
+*** WARNING L15: MULTIPLE CALL TO FUNCTION
+    NAME:    PWM_SET_Frequency/CNU_PIE_PWM
+    CALLER1: PIT0_Activated/main
+    CALLER2: ?C_C51STARTUP?3
+
+Program Size: data=8.1 edata+hdata=1205 xdata=0 const=3575 code=22989
+creating hex file from ".\Objects\Project_Template"...
+".\Objects\Project_Template" - 0 Error(s), 1 Warning(s).
+Build Time Elapsed:  00:00:00
