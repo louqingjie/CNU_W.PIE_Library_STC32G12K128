@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        11/11/25  22:26:26  PAGE 1   
+C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        15/11/25  22:32:26  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE CNU_PIE_PWM
@@ -66,7 +66,7 @@ stmt  level    source
    49   2          case PWMA_CH2P_P62: GPIO_Init(GPIO_P6,GPIO_Pin_2,GPIO_OUT_PP); break;
    50   2          case PWMA_CH2N_P63: GPIO_Init(GPIO_P6,GPIO_Pin_3,GPIO_OUT_PP); break;
    51   2          case PWMA_CH3P_P24: GPIO_Init(GPIO_P2,GPIO_Pin_4,GPIO_OUT_PP); break;
-C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        11/11/25  22:26:26  PAGE 2   
+C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        15/11/25  22:32:26  PAGE 2   
 
    52   2          case PWMA_CH3N_P25: GPIO_Init(GPIO_P2,GPIO_Pin_5,GPIO_OUT_PP); break;
    53   2          case PWMA_CH3P_P64: GPIO_Init(GPIO_P6,GPIO_Pin_4,GPIO_OUT_PP); break;
@@ -134,7 +134,7 @@ stmt  level    source
   113   2          match_temp = (period_temp + 1);               // duty为100%
   114   2        }
   115   1        if(PWMB_CH1_P20 <= PWM_CHN_PIN)       //PWM5-8
-C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        11/11/25  22:26:26  PAGE 3   
+C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        15/11/25  22:32:26  PAGE 3   
 
   116   1        {
   117   2          //通道选择，引脚选择
@@ -202,7 +202,7 @@ stmt  level    source
   174   1        
   175   1        if(pwm_duty != PRECISION)
   176   1        {
-C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        11/11/25  22:26:26  PAGE 4   
+C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        15/11/25  22:32:26  PAGE 4   
 
   177   2          match_temp = arrange * ((float)pwm_duty/PRECISION);       //占空比
   178   2        }
@@ -270,7 +270,7 @@ stmt  level    source
   238   1        (*(unsigned char volatile far *) (PWM_CCR_ADDR[PWM_CHN_PIN>>4] + 1))  = (uint8_t)match_temp;    //低8位
   239   1      }
   240          
-C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        11/11/25  22:26:26  PAGE 5   
+C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        15/11/25  22:32:26  PAGE 5   
 
   241          
 

@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  nrf24l01                                                           11/11/25  23:04:24  PAGE 1   
+C251 COMPILER V5.60.0,  nrf24l01                                                           15/11/25  22:32:26  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE nrf24l01
@@ -66,7 +66,7 @@ stmt  level    source
    55          #define CD          0x09        // 'Carrier Detect' register address
    56          #define RX_ADDR_P0  0x0A        // 'RX address pipe0' register address
    57          #define RX_ADDR_P1  0x0B        // 'RX address pipe1' register address
-C251 COMPILER V5.60.0,  nrf24l01                                                           11/11/25  23:04:24  PAGE 2   
+C251 COMPILER V5.60.0,  nrf24l01                                                           15/11/25  22:32:26  PAGE 2   
 
    58          #define RX_ADDR_P2  0x0C        // 'RX address pipe2' register address
    59          #define RX_ADDR_P3  0x0D        // 'RX address pipe3' register address
@@ -134,7 +134,7 @@ stmt  level    source
   121   1        
   122   1        nrf_writereg(NRF_WRITE_REG + SETUP_AW, ADR_WIDTH - 2);          //设置地址长度为 TX_ADR_WIDTH
   123   1        
-C251 COMPILER V5.60.0,  nrf24l01                                                           11/11/25  23:04:24  PAGE 3   
+C251 COMPILER V5.60.0,  nrf24l01                                                           15/11/25  22:32:26  PAGE 3   
 
   124   1        nrf_writereg(NRF_WRITE_REG + RF_CH, CHANAL);                    //设置RF通道为CHANAL
   125   1        
@@ -202,7 +202,7 @@ stmt  level    source
   186   2          if(buff[i] != NRF_CHECH_DATA)
   187   2          {
   188   3            return 0;          //MCU与NRF不正常连接
-C251 COMPILER V5.60.0,  nrf24l01                                                           11/11/25  23:04:24  PAGE 4   
+C251 COMPILER V5.60.0,  nrf24l01                                                           15/11/25  22:32:26  PAGE 4   
 
   189   3          }
   190   2        }
@@ -270,7 +270,7 @@ stmt  level    source
   250   1        for(i = 0; i < len; i++)
   251   1          crc += *(txbuf + i);
   252   1        TX_Buff[len + 1] = crc; //帧尾校验
-C251 COMPILER V5.60.0,  nrf24l01                                                           11/11/25  23:04:24  PAGE 5   
+C251 COMPILER V5.60.0,  nrf24l01                                                           15/11/25  22:32:26  PAGE 5   
 
   253   1        //发送
   254   1        if( nrf_mode != TX_MODE)
@@ -338,7 +338,7 @@ stmt  level    source
   316   1        uint8_t crc = 0;
   317   1        SendPack_t* pack_t = get_sendpack_point();
   318   1        int number = 0;
-C251 COMPILER V5.60.0,  nrf24l01                                                           11/11/25  23:04:24  PAGE 6   
+C251 COMPILER V5.60.0,  nrf24l01                                                           15/11/25  22:32:26  PAGE 6   
 
   319   1        for(i = label; i < 3 + label; i++) //包压缩
   320   1        {
@@ -406,7 +406,7 @@ stmt  level    source
   381   1        RF2G4_CSN_LOW;              // 使能SPI传输
   382   1        
   383   1        SPI_ReadWriteByte(reg);   // 发送寄存器号
-C251 COMPILER V5.60.0,  nrf24l01                                                           11/11/25  23:04:24  PAGE 7   
+C251 COMPILER V5.60.0,  nrf24l01                                                           15/11/25  22:32:26  PAGE 7   
 
   384   1        for(i = 0; i < len; i++)
   385   1          SPI_ReadWriteByte(*(pBuf + i));
@@ -474,7 +474,7 @@ stmt  level    source
   447   2        if(Port_Exti_Flag[2] & Port_Pin_6)
   448   2        {
   449   3          //P2.6中断
-C251 COMPILER V5.60.0,  nrf24l01                                                           11/11/25  23:04:24  PAGE 8   
+C251 COMPILER V5.60.0,  nrf24l01                                                           15/11/25  22:32:26  PAGE 8   
 
   450   3          nrf_handler();
   451   3        }

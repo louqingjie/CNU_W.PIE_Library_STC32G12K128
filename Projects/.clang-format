@@ -1,0 +1,42 @@
+---
+#Visual Studio 样式类似于: { BasedOnStyle: LLVM, UseTab: Never, IndentWidth: 4, TabWidth: 4, BreakBeforeBraces: Allman, AllowShortIfStatementsOnASingleLine: false, IndentCaseLabels: false, ColumnLimit: 0, AccessModifierOffset: -4, NamespaceIndentation: All, FixNamespaceComments: false }
+
+# 代码风格配置文件，用于指导代码的格式化和排版，以保持代码的一致性和可读性。
+Language: Cpp
+# 基于LLVM代码风格进行配置，这是一种广泛采用的C++代码风格。
+BasedOnStyle: LLVM
+
+# 禁止使用制表符，而是使用空格进行缩进，以避免不同编辑器间显示格式的差异。
+UseTab: Never
+# 指定每个缩进层级使用4个空格，这是大多数C++代码风格的常见选择。
+IndentWidth: 4
+# 制表符的宽度设置为4个空格，与IndentWidth保持一致，确保使用制表符和空格混合缩进时的显示效果一致。
+TabWidth: 4
+
+# 按照Allman风格，函数和控制流结构的左花括号另起一行，以增强代码的可读性。
+BreakBeforeBraces: Linux  # 我们将结构体花括号放在同一行，以提高代码的可读性。
+
+# 禁止将if语句（不包括else子句）放在一行内，以提高代码的可读性和可维护性。
+AllowShortIfStatementsOnASingleLine: false
+# 不对case标签进行额外缩进，保持与switch语句的左花括号对齐，以清晰显示控制流结构。
+IndentCaseLabels: false
+
+# 不设置列限制，允许代码自由扩展，注重代码的可读性而不强制限制行宽。
+ColumnLimit: 0
+
+# 访问修饰符（public、private、protected）的前面添加-4个空格的缩进，以区分于类成员的缩进。
+AccessModifierOffset: -4
+
+# 对所有命名空间层级进行缩进，以清晰显示命名空间的嵌套关系。
+NamespaceIndentation: All
+
+# 不修正命名空间注释的缩进，保持原始格式。
+FixNamespaceComments: false
+
+#长度差异过大时,比如上面是结构体,下面是int就加个空行
+# 对齐连续声明
+AlignConsecutiveDeclarations: true
+# 对齐连续的赋值语句
+AlignConsecutiveAssignments:  true
+
+...

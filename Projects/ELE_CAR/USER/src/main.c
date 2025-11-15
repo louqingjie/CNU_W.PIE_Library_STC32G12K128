@@ -2,333 +2,158 @@
 #include <MATH.H>
 
 // 参数区
-#define KP 0.5
-#define KI 0.1
-#define KD 0.1
-#define MAX_ABS_I 5
-#define TIMER_TIMES 5
-#define TIMER_TIME 10
-#define MAX_SPEED 1000
-#define MIN_SPEED 800
+float    kp             = 0.5;
+float    ki             = 0.1;
+float    kd             = 0.1;
+float    maxAbsI        = 5;  // 最大积分量
+uint8_t  timerTimes     = 5;  // 计时器触发次数
+uint8_t  timerMs        = 10; // 计时器触发时间
+uint16_t maxSpeed       = 1200;
+uint16_t minSpeed       = 1100;
+uint16_t midDutyOfServo = 730;
+uint16_t maxChangeDuty  = 130;
+uint8_t  adcPin[4]      = {0, 1, 6, 7};
 
 // 定义区
-/// @brief 8个ADC针脚
 char ADC[8] = {ADC_P13, ADC_P16, ADC_P10, ADC_P11,
-			   ADC_P02, ADC_P05, ADC_P00, ADC_P01};
-/// @brief 舵机
+               ADC_P02, ADC_P05, ADC_P00, ADC_P01};
 #define SERVO PWMB_CH1_P74
-/// @brief 左侧电机调速引脚
 #define MOTOR_L PWMA_CH2P_P62
-/// @brief 右侧电机调速引脚
 #define MOTOR_R PWMA_CH3P_P64
-/// @brief 左侧电机基准引脚
 #define MOTOR_BASE_L PWMA_CH1P_P60
-/// @brief 左侧电机基准引脚
 #define MOTOR_BASE_R PWMA_CH4P_P66
-/// @brief 四颗LED灯
 char LEDPin[4] = {GPIO_Pin_7, GPIO_Pin_6, GPIO_Pin_5, GPIO_Pin_4};
 #define LED(x) GPIO_P3, LEDPin[x]
-/// @brief 两个按键
 char KEYPin[2] = {GPIO_Pin_7, GPIO_Pin_6};
 #define KEY(x) GPIO_P0, KEYPin[x]
-/// @brief 十字键
 #define DPAD_UP GPIO_P4, GPIO_P2
 #define DPAD_DOWN GPIO_P4, GPIO_Pin_6
 #define DPAD_LEFT GPIO_P4, GPIO_Pin_5
 #define DPAD_RIGHT GPIO_P4, GPIO_Pin_1
 #define DPAD_MID GPIO_P2, GPIO_P7
-/// @brief 蜂鸣器
 #define BUZZER PWMB_CH3_P33
 
-// 变量区
-float PID_OUT;
-uint8_t times;
-// /// @brief 定时器时间
-// uint8_t timerMs = 10;
-// /// @brief start键计数
-// uint8_t key0Times = 0;
-// /// @brief select键计数
-// uint8_t key1Times = 0;
-// /// @brief BIOS当前页数
-// uint8_t page[2] = {1, 1};
-// /// @brief BIOS当前页数级
-// uint8_t pageLevel = 0;
-// /// @brief BIOS第一页栏数
-// #define FIRST_PAGE_NUM 5
-/// @brief ADC原始数据
-uint16_t adcRaw[4];
-/// @brief ADC最大值
-uint16_t adcMax[4];
-/// @brief ADC最小值
-uint16_t adcMin[4];
-/// @brief ADC归一化中滤波所用：获取的多个ADC值
-uint16_t getADC[10];
-/// @brief ADC归一化中滤波所用：冒泡排序暂存值
-uint16_t temp;
-float sumOfError;
-float lastError;
-uint16_t midDutyOfServo = 730, maxChangeDuty = 130;
-float adcAfterNorm[4], adcL, adcR, error, kp, ki, kd;
-char getADCLine[16];
-uint8_t i, j, k, ADCPin[4] = {0, 1, 6, 7};
-float currentError, prevError = 0;
+// 全局变量
+uint16_t adcMaxOut[4] = {20, 0, 0, 0}, adcMinOut[4] = {1000, 1000, 1000, 1000}, adcRaw[4], biosKey = 0;
+uint8_t  times;
+float    currentError, pidOut, lastError;
 
-void All_Init();
-void beep(uint16_t freq, uint16_t duty, uint16_t beepTime, uint16_t sleepTime);
-void ADC_Norm_Slow();
-void Get_ADC();
-float Normalization();
-float PID_Calculate(float error, float kp, float ki, float kd, float maxAbsI);
-void Servo_Control_By_Error(float errorInner);
-void Go(uint16_t minSpeed, uint16_t maxSpeed);
+// 声明区
+void  All_Init();
+void  beep(uint16_t freq, uint16_t duty, uint16_t beepTime, uint16_t sleepTime);
+void  ADC_Norm_Slow(uint16_t *adcMax, uint16_t *adcMin);
+void  ADC_Norm_Fast();
+void  Get_ADC();
+float Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin);
+float PID_Calculate(float error, float lastError, float kp, float ki, float kd, float maxAbsI);
+// void  Uart_Send_Message(uint16_t *adcRaw);
+void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty);
+void Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float lastError);
+void Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *adcRaw);
+void Stop_Inner();
+void BIOS_1();
 
 void main()
 {
-	All_Init(TIMER_TIME);
-	ADC_Norm_Slow();
-	PIT_Timer_Ms(TIM0, TIMER_TIME);
+    All_Init();
+    PWM_SET_Frequency(BUZZER, 1000, 5000);
+    // ADC_Norm_Fast();
+    // // ADC_Norm_Slow(adcMaxOut, adcMinOut);
+    // // PIT_Timer_Ms(TIM0, timerMs);
+    // LCD_P6x8Str(0, 3, "---------------------");
+    // LCD_P6x8Str(0, 5, "---------------------");
+    // while (1) {
+    //     while (GPIO_Read_Bit(DPAD_MID) == 0) {
+    //         while (biosKey % 3 == 1)
+    //             BIOS_1();
+    //         Get_ADC();
+    //         while (adcRaw[0] < adcMinOut[0] &&
+    //                adcRaw[1] < adcMinOut[1] &&
+    //                adcRaw[2] < adcMinOut[2] &&
+    //                adcRaw[3] < adcMinOut[3]) {
+    //             Go(0, 0, 0, 0);
+    //             Get_ADC();
+    //         };
+    //         // currentError = (sqrt((float)adcRaw[0] * adcRaw[1]) - sqrt((float)adcRaw[2] * adcRaw[3])) /
+    //         //                (sqrt((float)adcRaw[0] * adcRaw[1]) + sqrt((float)adcRaw[2] * adcRaw[3]));
+    //         currentError = Normalization(adcRaw, adcMaxOut, adcMinOut);
+    //         pidOut       = PID_Calculate(currentError, lastError, kp, ki, kd, maxAbsI);
 
-	while (1)
-	{
-		Get_ADC();
-		currentError = Normalization();
-		PID_OUT = PID_Calculate(currentError, KP, KI, KD, MAX_ABS_I);
-		Go(MIN_SPEED, MAX_SPEED, currentError, prevError);
-		prevError = currentError;
-	}
+    //         Show_Error_On_Sceen(currentError, pidOut, adcRaw);
+    //         Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty);
+    //         Go(minSpeed, maxSpeed, currentError, lastError);
+    //         lastError = currentError;
+    //         Ms_Delay(50);
+    //     }
+    //     while (GPIO_Read_Bit(DPAD_MID) == 1)
+    //         ;
+    //     biosKey++;
+    // }
 }
 
-void PIT0_Activated() interrupt TMR0_VECTOR
-{
-	times++;
-	if (times >= (TIMER_TIMES - 1))
-	{
-		Servo_Control_By_Error(PID_OUT);
-		times = 0;
-	}
-}
-
-// void P0_EXTI_Activated() interrupt P0INT_VECTOR
+// void PIT0_Activated() interrupt TMR0_VECTOR
 // {
-// 	GPIO_EXTI_Flag_Read(GPIO_P0);
-// 	if (Port_Exti_Flag[0])
-// 	{
-// 		GPIO_EXTI_Flag_Clear(GPIO_P0);
-// 		if (Port_Exti_Flag[0] & Port_Pin_7)
-// 		{
-// 			key0Times++;
-// 			Ms_Delay(50);
-// 		}
-// 		else if (Port_Exti_Flag[0] & Port_Pin_6)
-// 		{
-// 			key1Times++;
-// 			Ms_Delay(50);
-// 		}
-// 	}
+//     times++;
+//     if (times >= (timerTimes - 1)) {
+//         Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty);
+
+//         times = 0;
+
+//         // Uart_Send_Message(adcRaw);
+//     }
 // }
 
+/// @brief 全局初始化
 void All_Init()
 {
-	Board_Init();
+    uint8_t i;
+    Board_Init();
 
-	ADC_Init(ADC[0], ADC_SPEED_2X16T);
-	ADC_Init(ADC[1], ADC_SPEED_2X16T);
-	ADC_Init(ADC[6], ADC_SPEED_2X16T);
-	ADC_Init(ADC[7], ADC_SPEED_2X16T);
+    ADC_Init(ADC[0], ADC_SPEED_2X16T);
+    ADC_Init(ADC[1], ADC_SPEED_2X16T);
+    ADC_Init(ADC[6], ADC_SPEED_2X16T);
+    ADC_Init(ADC[7], ADC_SPEED_2X16T);
 
-	UART_Init(UART_1, UART1_RX_P43, UART1_TX_P44, 9600, TIM1);
+    UART_Init(UART_1, UART1_RX_P43,
+              UART1_TX_P44, 9600, TIM1);
 
-	PWM_Init(SERVO, 50, midDutyOfServo);
+    PWM_Init(SERVO, 50, midDutyOfServo);
 
-	PWM_Init(MOTOR_L, 10000, 10000);
-	PWM_Init(MOTOR_R, 10000, 10000);
-	PWM_Init(MOTOR_BASE_L, 10000, 10000);
-	PWM_Init(MOTOR_BASE_R, 10000, 10000);
-	for (i = 0; i < 4; i++)
-		GPIO_Init(LED(i), GPIO_OUT_PP);
+    PWM_Init(MOTOR_L, 10000, 10000);
+    PWM_Init(MOTOR_R, 10000, 10000);
+    PWM_Init(MOTOR_BASE_L, 10000, 10000);
+    PWM_Init(MOTOR_BASE_R, 10000, 10000);
+    for (i = 0; i < 4; i++)
+        GPIO_Init(LED(i), GPIO_OUT_PP);
 
-	GPIO_Init(KEY(0), GPIO_PullUp);
-	GPIO_Init(KEY(1), GPIO_PullUp);
+    GPIO_Init(KEY(0), GPIO_PullUp);
+    GPIO_Init(KEY(1), GPIO_PullUp);
 
-	GPIO_Init(DPAD_UP, GPIO_PullUp);
-	GPIO_Init(DPAD_DOWN, GPIO_PullUp);
-	GPIO_Init(DPAD_LEFT, GPIO_PullUp);
-	GPIO_Init(DPAD_RIGHT, GPIO_PullUp);
-	GPIO_Init(DPAD_MID, GPIO_PullUp);
+    GPIO_Init(DPAD_UP, GPIO_PullUp);
+    GPIO_Init(DPAD_DOWN, GPIO_PullUp);
+    GPIO_Init(DPAD_LEFT, GPIO_PullUp);
+    GPIO_Init(DPAD_RIGHT, GPIO_PullUp);
+    GPIO_Init(DPAD_MID, GPIO_PullUp);
 
-	// PWM_Init(BUZZER, 1000, 10000);
+    PWM_Init(BUZZER, 1000, 10000);
 
-	GPIO_EXTI_Init(KEY(0), FALLING_EDGE);
-	GPIO_EXTI_Open(KEY(0));
-	GPIO_EXTI_Init(KEY(1), FALLING_EDGE);
-	GPIO_EXTI_Open(KEY(1));
-	GPIO_EXTI_Init(DPAD_UP, FALLING_EDGE);
-	GPIO_EXTI_Open(DPAD_UP);
-	GPIO_EXTI_Init(DPAD_DOWN, FALLING_EDGE);
-	GPIO_EXTI_Open(DPAD_DOWN);
-	GPIO_EXTI_Init(DPAD_LEFT, FALLING_EDGE);
-	GPIO_EXTI_Open(DPAD_LEFT);
-	GPIO_EXTI_Init(DPAD_RIGHT, FALLING_EDGE);
-	GPIO_EXTI_Open(DPAD_RIGHT);
+    GPIO_EXTI_Init(KEY(0), FALLING_EDGE);
+    GPIO_EXTI_Open(KEY(0));
+    GPIO_EXTI_Init(KEY(1), FALLING_EDGE);
+    GPIO_EXTI_Open(KEY(1));
+    GPIO_EXTI_Init(DPAD_UP, FALLING_EDGE);
+    GPIO_EXTI_Open(DPAD_UP);
+    GPIO_EXTI_Init(DPAD_DOWN, FALLING_EDGE);
+    GPIO_EXTI_Open(DPAD_DOWN);
+    GPIO_EXTI_Init(DPAD_LEFT, FALLING_EDGE);
+    GPIO_EXTI_Open(DPAD_LEFT);
+    GPIO_EXTI_Init(DPAD_RIGHT, FALLING_EDGE);
+    GPIO_EXTI_Open(DPAD_RIGHT);
+    GPIO_EXTI_Init(DPAD_MID, FALLING_EDGE);
+    GPIO_EXTI_Open(DPAD_MID);
 
-	LCD_Init();
+    LCD_Init();
 }
-
-/// @brief 显示BIOS设置第一页
-// void First_Page(uint8_t page)
-// {
-//     LCD_P6x8Str(0, 1, "---------------------");
-//     LCD_P6x8Str(0, 0, "        BIOS         ");
-//     LCD_P6x8Str(0, 4, "                     ");
-//     LCD_P6x8Str(0, 6, "                     ");
-//     switch (page)
-//     {
-//     case 1:
-//         LCD_P8x16Str(0, 2, ">1.Timer Value<");
-//         LCD_P6x8Str(0, 5, "2.Servo Duty         ");
-//         LCD_P6x8Str(0, 7, "3.Speed Limit        ");
-//         break;
-//     case 2:
-//         LCD_P8x16Str(0, 2, ">2.Servo Duty <");
-//         LCD_P6x8Str(0, 5, "3.Speed Limit        ");
-//         LCD_P6x8Str(0, 7, "4.KP, KI & KD        ");
-//         break;
-//     case 3:
-//         LCD_P8x16Str(0, 2, ">3.Speed Limit<");
-//         LCD_P6x8Str(0, 5, "4.KP, KI & KD        ");
-//         LCD_P6x8Str(0, 7, "5.Quit & Save        ");
-//         break;
-//     case 4:
-//         LCD_P8x16Str(0, 2, ">4.KP, KI & KD<");
-//         LCD_P6x8Str(0, 5, "5.Quit & Save        ");
-//         LCD_P6x8Str(0, 7, "1.Timer Value        ");
-//         break;
-//     case 5:
-//         LCD_P8x16Str(0, 2, ">5.Quit & Save<");
-//         LCD_P6x8Str(0, 5, "1.Timer Value        ");
-//         LCD_P6x8Str(0, 7, "2.Servo Duty         ");
-//         break;
-//     }
-// }
-
-/// @brief BIOS设置
-// void BIOS()
-// {
-//     /*		level
-//     page	1				2
-//             1 	Time Value	-> 1	Value Choose
-//             |
-//             2 	Servo Duty	-> 1	Mid Duty
-//             |				-> 2	Max Duty
-//             |
-//             3 	Speed Limit	-> 1	Max Speed
-//             |				-> 2	Min Speed
-//             |
-//             4 	KP, KI & KD	-> 1	KP
-//             |				-> 2	KI
-//             |				-> 3	KD
-//             |
-//             5 	Quit & Save	-> 1	Yes
-//     */
-//     key0Times = 0;
-//     key1Times = 0;
-//     while (1) // 使停留在设置界面
-//     {
-//         while (key0Times == 0) // 当确认键未按下
-//         {
-//             page[0] = key1Times % FIRST_PAGE_NUM + 1;
-//             First_Page(page[0]);
-//         }
-//         key1Times = 0; // 选择键清零
-//         LCD_CLS();
-//         switch (page[0])
-//         {
-//         case 1:
-//             LCD_P6x8Str(0, 0, "     Timer Value     ");
-//             while (key0Times == 1) // 确认键触发，进入timer设置页面，未二次确认前不退出
-//             {
-//                 switch (key1Times % 2)
-//                 {
-//                 case 0:
-//                     LCD_P8x16Str(0, 2, ">1.Time       <");
-//                     LCD_P6x8Str(0, 5, "2.2.Count            ");
-//                     break;
-//                 case 1:
-//                     LCD_P6x8Str(0, 2, "1.Time               ");
-//                     LCD_P8x16Str(0, 5, ">2.Count      <");
-//                 default:
-//                     break;
-//                 }
-//                 key1Times = timerMs / 5 - 1;
-//                 switch (key1Times)
-//                 {
-//                 case 0:
-//                     timerMs = 5;
-//                     LCD_P8x16Str(16, 2, "Timer = 05ms");
-//                     LCD_PrintU16(80, 5, 10);
-//                     break;
-//                 case 1:
-//                     timerMs = 10;
-//                     LCD_P8x16Str(16, 2, "Timer = 10ms");
-//                     LCD_PrintU16(80, 5, 15);
-//                     break;
-//                 case 2:
-//                     timerMs = 15;
-//                     LCD_P8x16Str(16, 2, "Timer = 15ms");
-//                     LCD_PrintU16(80, 5, 20);
-//                     break;
-//                 case 3:
-//                     timerMs = 20;
-//                     LCD_P8x16Str(16, 2, "Timer = 20ms");
-//                     LCD_PrintU16(80, 5, 0);
-//                     LCD_PrintU16(86, 5, 5);
-//                     break;
-//                 default:
-//                     key1Times = 0;
-//                     break;
-//                 }
-//             }
-//             key0Times = 0; // 二次确认，确认键清零，第一处设置结束
-//             key1Times = 0;
-//             break;
-//         case 2:
-//             LCD_P6x8Str(0, 0, "     Servo  Duty     ");
-//             while (key0Times == 2)
-//             {
-//                 page[1] = key1Times % 2 + 1;
-//                 switch (key1Times)
-//                 {
-//                 case 1:
-//                     LCD_P8x16Str(0, 2, ">1.Mid Duty   <");
-//                     LCD_P6x8Str(0, 5, "2.Max Duty           ");
-//                     break;
-//                 case 2:
-//                     LCD_P6x8Str(0, 4, "1.Mid Duty            ");
-//                     LCD_P8x16Str(0, 4, ">2.Max Duty   <");
-//                     break;
-//                 default:
-//                     break;
-//                 }
-//             }
-//             LCD_CLS();
-//             switch (page[1])
-//             {
-//             case 1:
-//                 LCD_P6x8Str(0, 0, "      Mid  Duty      ");
-//                 while (key0Times == 1)
-//                 {
-//                     /* code */
-//                 }
-//                 break;
-//             default:
-//                 break;
-//             }
-//             break;
-//         default:
-//             break;
-//         }
-//     }
-// }
 
 /// @brief 蜂鸣函数
 /// @param freq 蜂鸣器频率
@@ -337,158 +162,309 @@ void All_Init()
 /// @param sleepTime 静默时长（毫秒）
 void beep(uint16_t freq, uint16_t duty, uint16_t beepTime, uint16_t sleepTime)
 {
-	PWM_SET_Frequency(BUZZER, freq, duty);
-	Ms_Delay(beepTime);
-	PWM_SET_Duty(BUZZER, 0);
-	Ms_Delay(sleepTime);
+    PWM_SET_Frequency(BUZZER, freq, duty);
+    Ms_Delay(beepTime);
+    PWM_SET_Duty(BUZZER, 0);
+    Ms_Delay(sleepTime);
 }
 
-/// @brief ADC读取最大最小值，为归一化做准备
-void ADC_Norm_Slow()
+/// @brief 获取ADC最值
+void ADC_Norm_Slow(uint16_t *adcMax, uint16_t *adcMin)
 {
-	LCD_CLS();
-	LCD_P8x16Str(0, 3, "ADC Norm Start ");
-	beep(1000, 0, 500, 500);
-	for (k = 0; k < 4; k++)
-	{
-		sprintf(getADCLine, "GET ADC %d MAX!!!", k);
-		LCD_P8x16Str(0, 3, getADCLine);
-		beep(500, 0, 500, 500);
-		for (i = 0; i < 10; i++)
-		{
-			getADC[i] = ADC_Read_Once(ADC[ADCPin[k]], ADC_12BIT);
-			Ms_Delay(10);
-		}
-		for (i = 1; i <= 10 - 1; i++) /*i代表排序轮数，总轮数=元素个数-1*/
-		{
-			for (j = 0; j < 10 - i; j++) /*j代表每轮排序次数，次数=个数-轮数-1，但j初值为0*/
-			{
-				if (getADC[j] > getADC[j + 1]) /*如果前一项比后一项大，则两项的值互换*/
-				{
-					temp = getADC[j];
-					getADC[j] = getADC[j + 1];
-					getADC[j + 1] = temp;
-				}
-			}
-		}
-		adcMax[k] = (getADC[4] + getADC[5]) / 2;
-		sprintf(getADCLine, "%dMAX=%d       ", k, adcMax[k]);
-		LCD_P8x16Str(0, 3, getADCLine);
-		beep(2000, 0, 100, 500);
+    char     getADCLine[16];
+    uint8_t  i, j, k;
+    uint16_t getADC[10], temp;
 
-		sprintf(getADCLine, "GET ADC %d MIN!!!", k);
-		LCD_P8x16Str(0, 3, getADCLine);
-		beep(500, 0, 500, 500);
-		for (i = 0; i < 10; i++)
-		{
-			getADC[i] = ADC_Read_Once(ADC[ADCPin[k]], ADC_12BIT);
-			Ms_Delay(10);
-		}
-		for (i = 1; i <= 10 - 1; i++) /*i代表排序轮数，总轮数=元素个数-1*/
-		{
-			for (j = 0; j < 10 - i; j++) /*j代表每轮排序次数，次数=个数-轮数-1，但j初值为0*/
-			{
-				if (getADC[j] > getADC[j + 1]) /*如果前一项比后一项大，则两项的值互换*/
-				{
-					temp = getADC[j];
-					getADC[j] = getADC[j + 1];
-					getADC[j + 1] = temp;
-				}
-			}
-		}
-		adcMin[k] = (getADC[4] + getADC[5]) / 2;
-		sprintf(getADCLine, "%dMIN=%d       ", k, adcMin[k]);
-		LCD_P8x16Str(0, 3, getADCLine);
-		beep(2000, 0, 100, 500);
-	}
-	LCD_CLS();
+    LCD_CLS();
+    LCD_P8x16Str(0, 3, "ADC Norm Start ");
+    beep(1000, 5000, 500, 500);
+
+    for (k = 0; k < 4; k++) {
+        sprintf(getADCLine, "GET ADC %d MAX!!!", k);
+        LCD_P8x16Str(0, 3, getADCLine);
+        beep(500, 5000, 500, 1500);
+        for (i = 0; i < 10; i++) {
+            getADC[i] = ADC_Read_Once(ADC[adcPin[k]], ADC_12BIT);
+            Ms_Delay(10);
+        }
+        for (i = 1; i <= 10 - 1; i++) /*i代表排序轮数，总轮数=元素个数-1*/
+        {
+            for (j = 0; j < 10 - i;
+                 j++) /*j代表每轮排序次数，次数=个数-轮数-1，但j初值为0*/
+            {
+                if (getADC[j] > getADC[j + 1]) /*如果前一项比后一项大，则两项的值互换*/
+                {
+                    temp          = getADC[j];
+                    getADC[j]     = getADC[j + 1];
+                    getADC[j + 1] = temp;
+                }
+            }
+        }
+        adcMax[k] = (getADC[4] + getADC[5]) / 2;
+        LCD_CLS();
+        sprintf(getADCLine, "ADC %d MAX=%d", k, adcMax[k]);
+        LCD_P8x16Str(0, 3, getADCLine);
+        beep(2000, 5000, 100, 500);
+    }
+
+    for (k = 0; k < 4; k++) {
+        sprintf(getADCLine, "GET ADC %d MIN!!!", k);
+        LCD_P8x16Str(0, 3, getADCLine);
+        beep(500, 5000, 500, 1500);
+        for (i = 0; i < 10; i++) {
+            getADC[i] = ADC_Read_Once(ADC[adcPin[k]], ADC_12BIT);
+            Ms_Delay(10);
+        }
+        for (i = 1; i <= 10 - 1; i++) /*i代表排序轮数，总轮数=元素个数-1*/
+        {
+            for (j = 0; j < 10 - i;
+                 j++) /*j代表每轮排序次数，次数=个数-轮数-1，但j初值为0*/
+            {
+                if (getADC[j] > getADC[j + 1]) /*如果前一项比后一项大，则两项的值互换*/
+                {
+                    temp          = getADC[j];
+                    getADC[j]     = getADC[j + 1];
+                    getADC[j + 1] = temp;
+                }
+            }
+        }
+        adcMin[k] = (getADC[4] + getADC[5]) / 2;
+        LCD_CLS();
+        sprintf(getADCLine, "ADC %d MIN=%d", k, adcMin[k]);
+        LCD_P8x16Str(0, 3, getADCLine);
+        beep(2000, 5000, 100, 500);
+    }
+    LCD_CLS();
+}
+
+void ADC_Norm_Fast()
+{
+    char     LimLine[22];
+    uint16_t i, j, getADC[4];
+    LCD_P8x16Str(0, 3, "NORM...");
+    for (i = 0; i < 50000; i++) {
+        for (j = 0; j < 4; j++) {
+            getADC[j] = ADC_Read_Once(ADC[adcPin[j]], ADC_12BIT);
+            if (adcMaxOut[j] < getADC[j])
+                adcMaxOut[j] = getADC[j];
+            else if (adcMinOut[j] > getADC[j])
+                adcMinOut[j] = getADC[j];
+        }
+    }
+    LCD_P8x16Str(0, 3, "FINISH!");
+    sprintf(LimLine, "%04d %04d   %04d %04d", adcMaxOut[0], adcMaxOut[1], adcMaxOut[2], adcMaxOut[3]);
+    LCD_P6x8Str(0, 6, LimLine);
+    sprintf(LimLine, "%04d %04d   %04d %04d", adcMinOut[0], adcMinOut[1], adcMinOut[2], adcMinOut[3]);
+    LCD_P6x8Str(0, 7, LimLine);
+    Ms_Delay(2000);
+    LCD_P8x16Str(0, 3, "       ");
 }
 
 /// @brief 从ADC中获取数值
 void Get_ADC()
 {
-	for (k = 0; k < 4; k++)
-	{
-		for (i = 0; i < 9; i++)
-		{
-			getADC[i] = ADC_Read_Once(ADC[ADCPin[k]], ADC_12BIT);
-		}
-		for (i = 1; i <= 9 - 1; i++) /*i代表排序轮数，总轮数=元素个数-1*/
-		{
-			for (j = 0; j < 9 - i; j++) /*j代表每轮排序次数，次数=个数-轮数-1，但j初值为0*/
-			{
-				if (getADC[j] > getADC[j + 1]) /*如果前一项比后一项大，则两项的值互换*/
-				{
-					temp = getADC[j];
-					getADC[j] = getADC[j + 1];
-					getADC[j + 1] = temp;
-				}
-			}
-		}
-		adcRaw[k] = getADC[5];
-		sprintf(getADCLine, "%d     ", adcRaw[k]);
-		LCD_P6x8Str(0, k, getADCLine);
-	}
+    uint8_t  i, j, k;
+    uint16_t temp, getADC[9];
+
+    for (k = 0; k < 4; k++) {
+        for (i = 0; i < 9; i++) {
+            getADC[i] = ADC_Read_Once(ADC[adcPin[k]], ADC_12BIT);
+        }
+        for (i = 1; i <= 9 - 1; i++) /*i代表排序轮数，总轮数=元素个数-1*/
+        {
+            for (j = 0; j < 9 - i;
+                 j++) /*j代表每轮排序次数，次数=个数-轮数-1，但j初值为0*/
+            {
+                if (getADC[j] > getADC[j + 1]) /*如果前一项比后一项大，则两项的值互换*/
+                {
+                    temp          = getADC[j];
+                    getADC[j]     = getADC[j + 1];
+                    getADC[j + 1] = temp;
+                }
+            }
+        }
+        adcRaw[k] = getADC[5];
+    }
+    // adcRaw[0] = ADC_Read_Once(ADC[0], ADC_12BIT);
+    // adcRaw[1] = ADC_Read_Once(ADC[1], ADC_12BIT);
+    // adcRaw[2] = ADC_Read_Once(ADC[6], ADC_12BIT);
+    // adcRaw[3] = ADC_Read_Once(ADC[7], ADC_12BIT);
 }
 
 /// @brief 归一化，计算误差
-/// @return 误差
-float Normalization()
+float Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin)
 {
-	for (i = 0; i < 4; i++)
-	{
-		if (adcRaw[i] > adcMax[i]) // ADC超上限
-		{
-			adcRaw[i] = adcMax[i];
-			GPIO_Write_Bit(LED(i), 0);
-		}
-		else if (adcRaw[i] < adcMin[i]) // ADC超下限
-		{
-			adcRaw[i] = adcMin[i];
-			GPIO_Write_Bit(LED(i), 0);
-		}
-		adcAfterNorm[i] = (float)(adcRaw[i] - adcMin[i]) / (adcMax[i] - adcMin[i]); // ADC归一化至0~1的值
-	}
-	adcL = sqrt(adcAfterNorm[0] * adcAfterNorm[1]);
-	adcR = sqrt(adcAfterNorm[2] * adcAfterNorm[3]);
-	return (adcL - adcR) / (adcL + adcR);
+    uint8_t i;
+    double  adcAfterNorm[4], adcL, adcR;
+    char    adcNormLine[4][22];
+
+    for (i = 0; i < 4; i++) {
+        if (adcRaw[i] > adcMax[i]) // ADC超上限
+        {
+            adcRaw[i] = adcMax[i];
+            GPIO_Write_Bit(LED(i), 0);
+        } else if (adcRaw[i] < adcMin[i]) // ADC超下限
+        {
+            adcRaw[i] = adcMin[i];
+            GPIO_Write_Bit(LED(i), 0);
+        }
+        adcAfterNorm[i] = (float)(adcRaw[i] - adcMin[i]) / (adcMax[i] - adcMin[i]); // ADC归一化至0~1的值
+        sprintf(adcNormLine[i], "%.2f", adcAfterNorm[i]);
+    }
+    sprintf(adcNormLine[0], "%s %s   %s %s", adcNormLine[0], adcNormLine[1], adcNormLine[2], adcNormLine[3]);
+    LCD_P6x8Str(0, 1, adcNormLine[0]);
+    adcL = (adcAfterNorm[0] + adcAfterNorm[1]) / 2;
+    adcR = (adcAfterNorm[2] + adcAfterNorm[3]) / 2;
+    sprintf(adcNormLine[0], "%.3f           %.3f", adcL, adcR);
+    LCD_P6x8Str(0, 2, adcNormLine[0]);
+    return (adcL - adcR) / (adcL + adcR);
 }
 
-float PID_Calculate(float error, float kp, float ki, float kd, float maxAbsI)
+float PID_Calculate(float error, float lastError, float kp, float ki, float kd, float maxAbsI)
 {
-	float output;
-	sumOfError += error;
-	if (sumOfError > maxAbsI)
-		sumOfError = maxAbsI;
-	else if (sumOfError < -maxAbsI)
-		sumOfError = -maxAbsI;
-	output = kp * error +
-			 ki * sumOfError +
-			 kd * (error - lastError);
-	if (output > 1)
-		output = 1;
-	else if (output < -1)
-		output = -1;
-	lastError = error;
-	return output;
+    float output, sumOfError;
+    sumOfError += error;
+    if (sumOfError > maxAbsI)
+        sumOfError = maxAbsI;
+    else if (sumOfError < -maxAbsI)
+        sumOfError = -maxAbsI;
+    output = kp * error + ki * sumOfError + kd * (error - lastError);
+    if (output > 1)
+        output = 1;
+    else if (output < -1)
+        output = -1;
+    lastError = error;
+    return output;
 }
 
-void Servo_Control_By_Error(float errorInner)
+// void Uart_Send_Message(uint16_t *adcRaw)
+// {
+//     UART_PutStr(UART_1, "test");
+// }
+
+void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty)
 {
-	if (errorInner > 1)
-		errorInner = 1;
-	else if (errorInner < -1)
-		errorInner = -1;
-	PWM_SET_Duty(SERVO, midDutyOfServo + (int)maxChangeDuty * errorInner);
+    if (errorInner > 1)
+        errorInner = 1;
+    else if (errorInner < -1)
+        errorInner = -1;
+    PWM_SET_Frequency(SERVO, 50, midDutyOfServo + (int)maxChangeDuty * errorInner);
 }
 
-void Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float prevError)
+void Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *adcRaw)
 {
-	int speed = (int)((maxSpeed - minSpeed) * abs(currentError - prevError) / 2) + minSpeed;
-	if (speed > maxSpeed)
-		speed = maxSpeed;
-	else if (speed < minSpeed)
-		speed = minSpeed;
-	PWM_SET_Duty(MOTOR_L, 10000 - speed);
-	PWM_SET_Duty(MOTOR_R, 10000 - speed);
+    char errorLine[22];
+    sprintf(errorLine, "%04d %04d   %04d %04d", adcRaw[0], adcRaw[1], adcRaw[2], adcRaw[3]);
+    LCD_P6x8Str(0, 0, errorLine);
+    if (errorBeforePID >= 0)
+        sprintf(errorLine, "+%.4f", errorBeforePID);
+    else
+        sprintf(errorLine, "%.4f", errorBeforePID);
+    if (errorAfterPID >= 0)
+        sprintf(errorLine, "%s  -->  +%.4f", errorLine, errorAfterPID);
+    else
+        sprintf(errorLine, "%s  -->  %.4f", errorLine, errorAfterPID);
+    LCD_P6x8Str(0, 4, errorLine);
+
+    // bitOfError[0] = errorToDisplay % 10;
+    // bitOfError[1] = (errorToDisplay / 10) % 10;
+    // bitOfError[2] = (errorToDisplay / 100) % 10;
+    // bitOfError[3] = errorToDisplay / 1000;
+    // if (error >= 0)
+    //     sprintf(errorLine[0], "E = +%d.%d%d%d", bitOfError[3],
+    //             bitOfError[2], bitOfError[1], bitOfError[0]);
+    // else
+    //     sprintf(errorLine[0], "E = -%d.%d%d%d", bitOfError[3],
+    //             bitOfError[2], bitOfError[1], bitOfError[0]);
+    // LCD_P8x16Str(0, 4, errorLine[0]);
+    // LCD_PrintFloat(0, 4, error, 4);
+    // for (i = 0; i < 4; i++) {
+    //     errorToDisplay = adcRaw[i];
+    //     bitOfError[0]  = errorToDisplay % 10;
+    //     bitOfError[1]  = (errorToDisplay / 10) % 10;
+    //     bitOfError[2]  = (errorToDisplay / 100) % 10;
+    //     bitOfError[3]  = errorToDisplay / 1000;
+    //     sprintf(errorLine[i], "%d%d%d%d", bitOfError[3],
+    //             bitOfError[2], bitOfError[1], bitOfError[0]);
+    // }
+    // sprintf(errorLine[0], "%s %s   %s %s", errorLine[0], errorLine[1], errorLine[2], errorLine[3]);
+    // LCD_P6x8Str(0, 0, errorLine[0]);
 }
+
+void Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float lastError)
+{
+    int speed = (int)((maxSpeed - minSpeed) * abs(currentError - lastError) / 2) + minSpeed;
+    if (speed > maxSpeed)
+        speed = maxSpeed;
+    else if (speed < minSpeed)
+        speed = minSpeed;
+    PWM_SET_Duty(MOTOR_L, 10000 - speed);
+    PWM_SET_Duty(MOTOR_R, 10000 - speed);
+}
+
+void Stop_Inner()
+{
+    PWM_SET_Frequency(SERVO, 50, midDutyOfServo);
+    PWM_SET_Duty(MOTOR_L, 10000);
+    PWM_SET_Duty(MOTOR_R, 10000);
+}
+
+void BIOS_1()
+{
+    char biosLine[16];
+    Stop_Inner();
+    LCD_P8x16Str(0, 0, "    BIOS  1    ");
+    LCD_P8x16Str(0, 1, "---------------");
+    sprintf(biosLine, "MaxSpeed = %d", maxSpeed);
+    LCD_P8x16Str(0, 2, biosLine);
+    sprintf(biosLine, "K1 = %0.2f  ", ki);
+    LCD_P8x16Str(0, 3, biosLine);
+}
+
+// void P0_EXTI_Activated() interrupt P0INT_VECTOR
+// {
+//     GPIO_EXTI_Flag_Read(GPIO_P0);
+//     if (Port_Exti_Flag[0]) {
+//         GPIO_EXTI_Flag_Clear(GPIO_P0);
+//         if (Port_Exti_Flag[0] & Port_Pin_7) {
+//             if (biosKey % 3 == 1)
+//                 maxSpeed += 50;
+//             else if (biosKey % 3 == 2)
+//                 minSpeed += 50;
+//         } else if (Port_Exti_Flag[0] & Port_Pin_6) {
+//             if (biosKey % 3 == 1)
+//                 maxSpeed -= 50;
+//             else if (biosKey % 3 == 2)
+//                 minSpeed -= 50;
+//         }
+//     }
+// }
+
+// void P4_EXTI_Activated() interrupt P4INT_VECTOR
+// {
+//     GPIO_EXTI_Flag_Read(GPIO_P4);
+//     if (Port_Exti_Flag[4]) {
+//         GPIO_EXTI_Flag_Clear(GPIO_P4);
+//         if (Port_Exti_Flag[4] & Port_Pin_2) {
+//             if (biosKey % 3 == 1)
+//                 ki += 0.01;
+//             else if (biosKey % 3 == 2)
+//                 maxAbsI++;
+//         } else if (Port_Exti_Flag[4] & Port_Pin_6) {
+//             if (biosKey % 3 == 1)
+//                 ki -= 0.01;
+//             else if (biosKey % 3 == 2)
+//                 maxAbsI--;
+//         } else if (Port_Exti_Flag[4] & Port_Pin_5) {
+//             if (biosKey % 3 == 1)
+//                 kp += 0.1;
+//             else if (biosKey % 3 == 2)
+//                 kd += 0.05;
+//         } else if (Port_Exti_Flag[4] & Port_Pin_1) {
+//             if (biosKey % 3 == 1)
+//                 kp -= 0.1;
+//             else if (biosKey % 3 == 2)
+//                 kd -= 0.05;
+//         }
+//     }
+// }

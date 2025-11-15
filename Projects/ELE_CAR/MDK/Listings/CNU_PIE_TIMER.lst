@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  CNU_PIE_TIMER                                                      11/11/25  22:26:26  PAGE 1   
+C251 COMPILER V5.60.0,  CNU_PIE_TIMER                                                      15/11/25  22:32:26  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE CNU_PIE_TIMER
@@ -66,7 +66,7 @@ stmt  level    source
    51           /*******************************************************************************************************
              -*******************
    52           * @brief  TIMER读取计数引脚脉冲数据
-C251 COMPILER V5.60.0,  CNU_PIE_TIMER                                                      11/11/25  22:26:26  PAGE 2   
+C251 COMPILER V5.60.0,  CNU_PIE_TIMER                                                      15/11/25  22:32:26  PAGE 2   
 
    53           * @exampleCode
    54           *      Timer_Count_Read(TIMER3_P04); //定时器3 P04引脚读取计数数值
@@ -134,7 +134,7 @@ stmt  level    source
   112           * @exampleCode
   113           *      PIT_Timer_Ms(TIM0 ， 20); //初始化定时器0作为中断源，20ms定时中断
   114           * @endcode
-C251 COMPILER V5.60.0,  CNU_PIE_TIMER                                                      11/11/25  22:26:26  PAGE 3   
+C251 COMPILER V5.60.0,  CNU_PIE_TIMER                                                      15/11/25  22:32:26  PAGE 3   
 
   115           * @param[in]  Timer_CHN  定时器通道号
   116           * @param[in]  Time       中断时间
@@ -203,7 +203,7 @@ Module Information          Static   Overlayable
   huge data size       =    ------     ------
   const size           =    ------     ------
   hconst size          =    ------     ------
-C251 COMPILER V5.60.0,  CNU_PIE_TIMER                                                      11/11/25  22:26:26  PAGE 4   
+C251 COMPILER V5.60.0,  CNU_PIE_TIMER                                                      15/11/25  22:32:26  PAGE 4   
 
 End of Module Information.
 
