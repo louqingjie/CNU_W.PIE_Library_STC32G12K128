@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  main                                                               15/11/25  16:51:32  PAGE 1   
+C251 COMPILER V5.60.0,  main                                                               16/11/25  00:35:26  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE main
@@ -19,8 +19,8 @@ stmt  level    source
     8          float    maxAbsI        = 5;  // ?????
     9          uint8_t  timerTimes     = 5;  // ???????
    10          uint8_t  timerMs        = 10; // ???????
-   11          uint16_t maxSpeed       = 1000;
-   12          uint16_t minSpeed       = 800;
+   11          uint16_t maxSpeed       = 1200;
+   12          uint16_t minSpeed       = 1100;
    13          uint16_t midDutyOfServo = 730;
    14          uint16_t maxChangeDuty  = 130;
    15          uint8_t  adcPin[4]      = {0, 1, 6, 7};
@@ -45,7 +45,7 @@ stmt  level    source
    34          #define BUZZER PWMB_CH3_P33
    35          
    36          // ????
-   37          uint16_t adcMaxOut[4], adcMinOut[4], adcRaw[4];
+   37          uint16_t adcMaxOut[4] = {20, 0, 0, 0}, adcMinOut[4] = {1000, 1000, 1000, 1000}, adcRaw[4], biosKey = 0;
    38          uint8_t  times;
    39          float    currentError, pidOut, lastError;
    40          
@@ -53,280 +53,461 @@ stmt  level    source
    42          void  All_Init();
    43          void  beep(uint16_t freq, uint16_t duty, uint16_t beepTime, uint16_t sleepTime);
    44          void  ADC_Norm_Slow(uint16_t *adcMax, uint16_t *adcMin);
-   45          void  Get_ADC(uint16_t *adcRaw);
-   46          float Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin);
-   47          float PID_Calculate(float error, float lastError, float kp, float ki, float kd, float maxAbsI);
-   48          void Uart_Send_Message(uint16_t *adcRaw);
-   49          void  Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty);
-   50          void  Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float lastError);
-   51          
-   52          void main()
-   53          {
-   54   1          All_Init();
-   55   1          ADC_Norm_Slow(adcMaxOut, adcMinOut);
-   56   1          PIT_Timer_Ms(TIM0, timerMs);
-   57   1          while (1) {
-C251 COMPILER V5.60.0,  main                                                               15/11/25  16:51:32  PAGE 2   
+   45          void  ADC_Norm_Fast();
+   46          void  Get_ADC();
+   47          float Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin);
+   48          float PID_Calculate(float error, float lastError, float kp, float ki, float kd, float maxAbsI);
+   49          // void  Uart_Send_Message(uint16_t *adcRaw);
+   50          void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty);
+   51          void Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float lastError);
+   52          void Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *adcRaw);
+   53          void Stop_Inner();
+   54          void BIOS_1();
+   55          
+   56          void main()
+   57          {
+C251 COMPILER V5.60.0,  main                                                               16/11/25  00:35:26  PAGE 2   
 
-   58   2              Get_ADC(adcRaw);
-   59   2              currentError = Normalization(adcRaw, adcMaxOut, adcMinOut);
-   60   2              pidOut       = PID_Calculate(currentError, lastError, kp, ki, kd, maxAbsI);
-   61   2              Go(minSpeed, maxSpeed, currentError, lastError);
-   62   2          }
-   63   1      }
-   64          
-   65          void PIT0_Activated() interrupt TMR0_VECTOR
-   66          {
-   67   1          times++;
-   68   1          if (times >= (timerTimes - 1)) {
-   69   2              Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty);
-   70   2              times = 0;
-   71   2              Uart_Send_Message(adcRaw);
-   72   2          }
-   73   1      }
-   74          
-   75          /// @brief ?????
-   76          void All_Init()
-   77          {
-   78   1          uint8_t i;
-   79   1          Board_Init();
-   80   1      
-   81   1          ADC_Init(ADC[0], ADC_SPEED_2X16T);
-   82   1          ADC_Init(ADC[1], ADC_SPEED_2X16T);
-   83   1          ADC_Init(ADC[6], ADC_SPEED_2X16T);
-   84   1          ADC_Init(ADC[7], ADC_SPEED_2X16T);
-   85   1      
-   86   1          UART_Init(UART_1, UART1_RX_P43,
-   87   1                    UART1_TX_P44, 9600, TIM1);
-   88   1      
-   89   1          PWM_Init(SERVO, 50, midDutyOfServo);
-   90   1      
-   91   1          PWM_Init(MOTOR_L, 10000, 10000);
-   92   1          PWM_Init(MOTOR_R, 10000, 10000);
-   93   1          PWM_Init(MOTOR_BASE_L, 10000, 10000);
-   94   1          PWM_Init(MOTOR_BASE_R, 10000, 10000);
-   95   1          for (i = 0; i < 4; i++)
-   96   1              GPIO_Init(LED(i), GPIO_OUT_PP);
-   97   1      
-   98   1          GPIO_Init(KEY(0), GPIO_PullUp);
-   99   1          GPIO_Init(KEY(1), GPIO_PullUp);
-  100   1      
-  101   1          GPIO_Init(DPAD_UP, GPIO_PullUp);
-  102   1          GPIO_Init(DPAD_DOWN, GPIO_PullUp);
-  103   1          GPIO_Init(DPAD_LEFT, GPIO_PullUp);
-  104   1          GPIO_Init(DPAD_RIGHT, GPIO_PullUp);
-  105   1          GPIO_Init(DPAD_MID, GPIO_PullUp);
-  106   1      
-  107   1          // PWM_Init(BUZZER, 1000, 10000);
-  108   1      
-  109   1          GPIO_EXTI_Init(KEY(0), FALLING_EDGE);
-  110   1          GPIO_EXTI_Open(KEY(0));
-  111   1          GPIO_EXTI_Init(KEY(1), FALLING_EDGE);
-  112   1          GPIO_EXTI_Open(KEY(1));
-  113   1          GPIO_EXTI_Init(DPAD_UP, FALLING_EDGE);
-  114   1          GPIO_EXTI_Open(DPAD_UP);
-  115   1          GPIO_EXTI_Init(DPAD_DOWN, FALLING_EDGE);
-  116   1          GPIO_EXTI_Open(DPAD_DOWN);
-  117   1          GPIO_EXTI_Init(DPAD_LEFT, FALLING_EDGE);
-  118   1          GPIO_EXTI_Open(DPAD_LEFT);
-  119   1          GPIO_EXTI_Init(DPAD_RIGHT, FALLING_EDGE);
-  120   1          GPIO_EXTI_Open(DPAD_RIGHT);
+   58   1          All_Init();
+   59   1          PWM_SET_Frequency(BUZZER, 1000, 5000);
+   60   1          // ADC_Norm_Fast();
+   61   1          // // ADC_Norm_Slow(adcMaxOut, adcMinOut);
+   62   1          // // PIT_Timer_Ms(TIM0, timerMs);
+   63   1          // LCD_P6x8Str(0, 3, "---------------------");
+   64   1          // LCD_P6x8Str(0, 5, "---------------------");
+   65   1          // while (1) {
+   66   1          //     while (GPIO_Read_Bit(DPAD_MID) == 0) {
+   67   1          //         while (biosKey % 3 == 1)
+   68   1          //             BIOS_1();
+   69   1          //         Get_ADC();
+   70   1          //         while (adcRaw[0] < adcMinOut[0] &&
+   71   1          //                adcRaw[1] < adcMinOut[1] &&
+   72   1          //                adcRaw[2] < adcMinOut[2] &&
+   73   1          //                adcRaw[3] < adcMinOut[3]) {
+   74   1          //             Go(0, 0, 0, 0);
+   75   1          //             Get_ADC();
+   76   1          //         };
+   77   1          //         // currentError = (sqrt((float)adcRaw[0] * adcRaw[1]) - sqrt((float)adcRaw[2] * adcRaw[3])
+             -) /
+   78   1          //         //                (sqrt((float)adcRaw[0] * adcRaw[1]) + sqrt((float)adcRaw[2] * adcRaw[3])
+             -);
+   79   1          //         currentError = Normalization(adcRaw, adcMaxOut, adcMinOut);
+   80   1          //         pidOut       = PID_Calculate(currentError, lastError, kp, ki, kd, maxAbsI);
+   81   1      
+   82   1          //         Show_Error_On_Sceen(currentError, pidOut, adcRaw);
+   83   1          //         Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty);
+   84   1          //         Go(minSpeed, maxSpeed, currentError, lastError);
+   85   1          //         lastError = currentError;
+   86   1          //         Ms_Delay(50);
+   87   1          //     }
+   88   1          //     while (GPIO_Read_Bit(DPAD_MID) == 1)
+   89   1          //         ;
+   90   1          //     biosKey++;
+   91   1          // }
+   92   1      }
+   93          
+   94          // void PIT0_Activated() interrupt TMR0_VECTOR
+   95          // {
+   96          //     times++;
+   97          //     if (times >= (timerTimes - 1)) {
+   98          //         Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty);
+   99          
+  100          //         times = 0;
+  101          
+  102          //         // Uart_Send_Message(adcRaw);
+  103          //     }
+  104          // }
+  105          
+  106          /// @brief ?????
+  107          void All_Init()
+  108          {
+  109   1          uint8_t i;
+  110   1          Board_Init();
+  111   1      
+  112   1          ADC_Init(ADC[0], ADC_SPEED_2X16T);
+  113   1          ADC_Init(ADC[1], ADC_SPEED_2X16T);
+  114   1          ADC_Init(ADC[6], ADC_SPEED_2X16T);
+  115   1          ADC_Init(ADC[7], ADC_SPEED_2X16T);
+  116   1      
+  117   1          UART_Init(UART_1, UART1_RX_P43,
+  118   1                    UART1_TX_P44, 9600, TIM1);
+  119   1      
+  120   1          PWM_Init(SERVO, 50, midDutyOfServo);
   121   1      
-  122   1          LCD_Init();
-  123   1      }
-C251 COMPILER V5.60.0,  main                                                               15/11/25  16:51:32  PAGE 3   
+C251 COMPILER V5.60.0,  main                                                               16/11/25  00:35:26  PAGE 3   
 
-  124          
-  125          /// @brief ????
-  126          /// @param freq ?????
-  127          /// @param duty ??????
-  128          /// @param beepTime ????(??)
-  129          /// @param sleepTime ????(??)
-  130          void beep(uint16_t freq, uint16_t duty, uint16_t beepTime, uint16_t sleepTime)
-  131          {
-  132   1          PWM_SET_Frequency(BUZZER, freq, duty);
-  133   1          Ms_Delay(beepTime);
-  134   1          PWM_SET_Duty(BUZZER, 0);
-  135   1          Ms_Delay(sleepTime);
-  136   1      }
-  137          
-  138          /// @brief ??ADC??
-  139          void ADC_Norm_Slow(uint16_t *adcMax, uint16_t *adcMin)
-  140          {
-  141   1          char     getADCLine[16];
-  142   1          uint8_t  i, j, k;
-  143   1          uint16_t getADC[10], temp;
-  144   1      
-  145   1          LCD_CLS();
-  146   1          LCD_P8x16Str(0, 3, "ADC Norm Start ");
-  147   1          beep(1000, 5000, 500, 500);
-  148   1      
-  149   1          for (k = 0; k < 4; k++) {
-  150   2              sprintf(getADCLine, "GET ADC %d MAX!!!", k);
-  151   2              LCD_P8x16Str(0, 3, getADCLine);
-  152   2              beep(500, 5000, 500, 1500);
-  153   2              for (i = 0; i < 10; i++) {
-  154   3                  getADC[i] = ADC_Read_Once(ADC[adcPin[k]], ADC_12BIT);
-  155   3                  Ms_Delay(10);
-  156   3              }
-  157   2              for (i = 1; i <= 10 - 1; i++) /*i??????,???=????-1*/
-  158   2              {
-  159   3                  for (j = 0; j < 10 - i;
-  160   3                       j++) /*j????????,??=??-??-1,?j???0*/
-  161   3                  {
-  162   4                      if (getADC[j] > getADC[j + 1]) /*??????????,???????*/
-  163   4                      {
-  164   5                          temp          = getADC[j];
-  165   5                          getADC[j]     = getADC[j + 1];
-  166   5                          getADC[j + 1] = temp;
-  167   5                      }
-  168   4                  }
-  169   3              }
-  170   2              adcMax[k] = (getADC[4] + getADC[5]) / 2;
-  171   2              LCD_CLS();
-  172   2              sprintf(getADCLine, "ADC %d MAX=%d", k, adcMax[k]);
-  173   2              LCD_P8x16Str(0, 3, getADCLine);
-  174   2              beep(2000, 5000, 100, 500);
-  175   2          }
-  176   1      
-  177   1          for (k = 0; k < 4; k++) {
-  178   2              sprintf(getADCLine, "GET ADC %d MIN!!!", k);
-  179   2              LCD_P8x16Str(0, 3, getADCLine);
-  180   2              beep(500, 5000, 500, 1500);
-  181   2              for (i = 0; i < 10; i++) {
-  182   3                  getADC[i] = ADC_Read_Once(ADC[adcPin[k]], ADC_12BIT);
-  183   3                  Ms_Delay(10);
-  184   3              }
-  185   2              for (i = 1; i <= 10 - 1; i++) /*i??????,???=????-1*/
-  186   2              {
-  187   3                  for (j = 0; j < 10 - i;
-  188   3                       j++) /*j????????,??=??-??-1,?j???0*/
-  189   3                  {
-C251 COMPILER V5.60.0,  main                                                               15/11/25  16:51:32  PAGE 4   
+  122   1          PWM_Init(MOTOR_L, 10000, 10000);
+  123   1          PWM_Init(MOTOR_R, 10000, 10000);
+  124   1          PWM_Init(MOTOR_BASE_L, 10000, 10000);
+  125   1          PWM_Init(MOTOR_BASE_R, 10000, 10000);
+  126   1          for (i = 0; i < 4; i++)
+  127   1              GPIO_Init(LED(i), GPIO_OUT_PP);
+  128   1      
+  129   1          GPIO_Init(KEY(0), GPIO_PullUp);
+  130   1          GPIO_Init(KEY(1), GPIO_PullUp);
+  131   1      
+  132   1          GPIO_Init(DPAD_UP, GPIO_PullUp);
+  133   1          GPIO_Init(DPAD_DOWN, GPIO_PullUp);
+  134   1          GPIO_Init(DPAD_LEFT, GPIO_PullUp);
+  135   1          GPIO_Init(DPAD_RIGHT, GPIO_PullUp);
+  136   1          GPIO_Init(DPAD_MID, GPIO_PullUp);
+  137   1      
+  138   1          PWM_Init(BUZZER, 1000, 10000);
+  139   1      
+  140   1          GPIO_EXTI_Init(KEY(0), FALLING_EDGE);
+  141   1          GPIO_EXTI_Open(KEY(0));
+  142   1          GPIO_EXTI_Init(KEY(1), FALLING_EDGE);
+  143   1          GPIO_EXTI_Open(KEY(1));
+  144   1          GPIO_EXTI_Init(DPAD_UP, FALLING_EDGE);
+  145   1          GPIO_EXTI_Open(DPAD_UP);
+  146   1          GPIO_EXTI_Init(DPAD_DOWN, FALLING_EDGE);
+  147   1          GPIO_EXTI_Open(DPAD_DOWN);
+  148   1          GPIO_EXTI_Init(DPAD_LEFT, FALLING_EDGE);
+  149   1          GPIO_EXTI_Open(DPAD_LEFT);
+  150   1          GPIO_EXTI_Init(DPAD_RIGHT, FALLING_EDGE);
+  151   1          GPIO_EXTI_Open(DPAD_RIGHT);
+  152   1          GPIO_EXTI_Init(DPAD_MID, FALLING_EDGE);
+  153   1          GPIO_EXTI_Open(DPAD_MID);
+  154   1      
+  155   1          LCD_Init();
+  156   1      }
+  157          
+  158          /// @brief ????
+  159          /// @param freq ?????
+  160          /// @param duty ??????
+  161          /// @param beepTime ????(??)
+  162          /// @param sleepTime ????(??)
+  163          void beep(uint16_t freq, uint16_t duty, uint16_t beepTime, uint16_t sleepTime)
+  164          {
+  165   1          PWM_SET_Frequency(BUZZER, freq, duty);
+  166   1          Ms_Delay(beepTime);
+  167   1          PWM_SET_Duty(BUZZER, 0);
+  168   1          Ms_Delay(sleepTime);
+  169   1      }
+  170          
+  171          /// @brief ??ADC??
+  172          void ADC_Norm_Slow(uint16_t *adcMax, uint16_t *adcMin)
+  173          {
+  174   1          char     getADCLine[16];
+  175   1          uint8_t  i, j, k;
+  176   1          uint16_t getADC[10], temp;
+  177   1      
+  178   1          LCD_CLS();
+  179   1          LCD_P8x16Str(0, 3, "ADC Norm Start ");
+  180   1          beep(1000, 5000, 500, 500);
+  181   1      
+  182   1          for (k = 0; k < 4; k++) {
+  183   2              sprintf(getADCLine, "GET ADC %d MAX!!!", k);
+  184   2              LCD_P8x16Str(0, 3, getADCLine);
+  185   2              beep(500, 5000, 500, 1500);
+  186   2              for (i = 0; i < 10; i++) {
+  187   3                  getADC[i] = ADC_Read_Once(ADC[adcPin[k]], ADC_12BIT);
+C251 COMPILER V5.60.0,  main                                                               16/11/25  00:35:26  PAGE 4   
 
-  190   4                      if (getADC[j] > getADC[j + 1]) /*??????????,???????*/
-  191   4                      {
-  192   5                          temp          = getADC[j];
-  193   5                          getADC[j]     = getADC[j + 1];
-  194   5                          getADC[j + 1] = temp;
-  195   5                      }
-  196   4                  }
-  197   3              }
-  198   2              adcMin[k] = (getADC[4] + getADC[5]) / 2;
-  199   2              LCD_CLS();
-  200   2              sprintf(getADCLine, "ADC %d MIN=%d", k, adcMin[k]);
-  201   2              LCD_P8x16Str(0, 3, getADCLine);
-  202   2              beep(2000, 5000, 100, 500);
-  203   2          }
-  204   1          LCD_CLS();
-  205   1      }
-  206          
-  207          /// @brief ?ADC?????
-  208          void Get_ADC(uint16_t *adcRaw)
-  209          {
-  210   1          uint8_t  i, j, k;
-  211   1          uint16_t temp, getADC[9];
-  212   1      
-  213   1          for (k = 0; k < 4; k++) {
-  214   2              for (i = 0; i < 9; i++) {
+  188   3                  Ms_Delay(10);
+  189   3              }
+  190   2              for (i = 1; i <= 10 - 1; i++) /*i??????,???=????-1*/
+  191   2              {
+  192   3                  for (j = 0; j < 10 - i;
+  193   3                       j++) /*j????????,??=??-??-1,?j???0*/
+  194   3                  {
+  195   4                      if (getADC[j] > getADC[j + 1]) /*??????????,???????*/
+  196   4                      {
+  197   5                          temp          = getADC[j];
+  198   5                          getADC[j]     = getADC[j + 1];
+  199   5                          getADC[j + 1] = temp;
+  200   5                      }
+  201   4                  }
+  202   3              }
+  203   2              adcMax[k] = (getADC[4] + getADC[5]) / 2;
+  204   2              LCD_CLS();
+  205   2              sprintf(getADCLine, "ADC %d MAX=%d", k, adcMax[k]);
+  206   2              LCD_P8x16Str(0, 3, getADCLine);
+  207   2              beep(2000, 5000, 100, 500);
+  208   2          }
+  209   1      
+  210   1          for (k = 0; k < 4; k++) {
+  211   2              sprintf(getADCLine, "GET ADC %d MIN!!!", k);
+  212   2              LCD_P8x16Str(0, 3, getADCLine);
+  213   2              beep(500, 5000, 500, 1500);
+  214   2              for (i = 0; i < 10; i++) {
   215   3                  getADC[i] = ADC_Read_Once(ADC[adcPin[k]], ADC_12BIT);
-  216   3              }
-  217   2              for (i = 1; i <= 9 - 1; i++) /*i??????,???=????-1*/
-  218   2              {
-  219   3                  for (j = 0; j < 9 - i;
-  220   3                       j++) /*j????????,??=??-??-1,?j???0*/
-  221   3                  {
-  222   4                      if (getADC[j] > getADC[j + 1]) /*??????????,???????*/
-  223   4                      {
-  224   5                          temp          = getADC[j];
-  225   5                          getADC[j]     = getADC[j + 1];
-  226   5                          getADC[j + 1] = temp;
-  227   5                      }
-  228   4                  }
-  229   3              }
-  230   2              adcRaw[k] = getADC[5];
-  231   2          }
-  232   1      }
-  233          
-  234          /// @brief ???,????
-  235          float Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin)
-  236          {
-  237   1          uint8_t i;
-  238   1          double  adcAfterNorm[4], adcL, adcR;
-  239   1      
-  240   1          for (i = 0; i < 4; i++) {
-  241   2              if (adcRaw[i] > adcMax[i]) // ADC???
-  242   2              {
-  243   3                  adcRaw[i] = adcMax[i];
-  244   3                  GPIO_Write_Bit(LED(i), 0);
-  245   3              } else if (adcRaw[i] < adcMin[i]) // ADC???
-  246   2              {
-  247   3                  adcRaw[i] = adcMin[i];
-  248   3                  GPIO_Write_Bit(LED(i), 0);
-  249   3              }
-  250   2              adcAfterNorm[i] = (float)(adcRaw[i] - adcMin[i]) / (adcMax[i] - adcMin[i]); // ADC????0~1??
-  251   2          }
-  252   1          adcL = sqrt(adcAfterNorm[0] * adcAfterNorm[1]);
-  253   1          adcR = sqrt(adcAfterNorm[2] * adcAfterNorm[3]);
-  254   1          return (adcL - adcR) / (adcL + adcR);
-  255   1      }
-C251 COMPILER V5.60.0,  main                                                               15/11/25  16:51:32  PAGE 5   
+  216   3                  Ms_Delay(10);
+  217   3              }
+  218   2              for (i = 1; i <= 10 - 1; i++) /*i??????,???=????-1*/
+  219   2              {
+  220   3                  for (j = 0; j < 10 - i;
+  221   3                       j++) /*j????????,??=??-??-1,?j???0*/
+  222   3                  {
+  223   4                      if (getADC[j] > getADC[j + 1]) /*??????????,???????*/
+  224   4                      {
+  225   5                          temp          = getADC[j];
+  226   5                          getADC[j]     = getADC[j + 1];
+  227   5                          getADC[j + 1] = temp;
+  228   5                      }
+  229   4                  }
+  230   3              }
+  231   2              adcMin[k] = (getADC[4] + getADC[5]) / 2;
+  232   2              LCD_CLS();
+  233   2              sprintf(getADCLine, "ADC %d MIN=%d", k, adcMin[k]);
+  234   2              LCD_P8x16Str(0, 3, getADCLine);
+  235   2              beep(2000, 5000, 100, 500);
+  236   2          }
+  237   1          LCD_CLS();
+  238   1      }
+  239          
+  240          void ADC_Norm_Fast()
+  241          {
+  242   1          char     LimLine[22];
+  243   1          uint16_t i, j, getADC[4];
+  244   1          LCD_P8x16Str(0, 3, "NORM...");
+  245   1          for (i = 0; i < 50000; i++) {
+  246   2              for (j = 0; j < 4; j++) {
+  247   3                  getADC[j] = ADC_Read_Once(ADC[adcPin[j]], ADC_12BIT);
+  248   3                  if (adcMaxOut[j] < getADC[j])
+  249   3                      adcMaxOut[j] = getADC[j];
+  250   3                  else if (adcMinOut[j] > getADC[j])
+  251   3                      adcMinOut[j] = getADC[j];
+  252   3              }
+  253   2          }
+C251 COMPILER V5.60.0,  main                                                               16/11/25  00:35:26  PAGE 5   
 
-  256          
-  257          float PID_Calculate(float error, float lastError, float kp, float ki, float kd, float maxAbsI)
-  258          {
-  259   1          float output, sumOfError;
-  260   1          sumOfError += error;
-  261   1          if (sumOfError > maxAbsI)
-  262   1              sumOfError = maxAbsI;
-  263   1          else if (sumOfError < -maxAbsI)
-  264   1              sumOfError = -maxAbsI;
-  265   1          output = kp * error + ki * sumOfError + kd * (error - lastError);
-  266   1          if (output > 1)
-  267   1              output = 1;
-  268   1          else if (output < -1)
-  269   1              output = -1;
-  270   1          lastError = error;
-  271   1          return output;
-  272   1      }
-  273          
-  274          void Uart_Send_Message(uint16_t *adcRaw)
-  275          {
-  276   1          UART_PutStr(UART_1, "test");
-  277   1      }
-*** WARNING C47 IN LINE 274 OF ..\USER\src\main.c: 'adcRaw': unreferenced parameter
-  278          
-  279          void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty)
-  280          {
-  281   1          if (errorInner > 1)
-  282   1              errorInner = 1;
-  283   1          else if (errorInner < -1)
-  284   1              errorInner = -1;
-  285   1          PWM_SET_Duty(SERVO, midDutyOfServo + (int)maxChangeDuty * errorInner);
-  286   1      }
-  287          
-  288          void Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float lastError)
-  289          {
-  290   1          int speed = (int)((maxSpeed - minSpeed) * abs(currentError - lastError) / 2) + minSpeed;
-  291   1          if (speed > maxSpeed)
-  292   1              speed = maxSpeed;
-  293   1          else if (speed < minSpeed)
-  294   1              speed = minSpeed;
-  295   1          PWM_SET_Duty(MOTOR_L, 10000 - speed);
-  296   1          PWM_SET_Duty(MOTOR_R, 10000 - speed);
-  297   1      }
+  254   1          LCD_P8x16Str(0, 3, "FINISH!");
+  255   1          sprintf(LimLine, "%04d %04d   %04d %04d", adcMaxOut[0], adcMaxOut[1], adcMaxOut[2], adcMaxOut[3]);
+  256   1          LCD_P6x8Str(0, 6, LimLine);
+  257   1          sprintf(LimLine, "%04d %04d   %04d %04d", adcMinOut[0], adcMinOut[1], adcMinOut[2], adcMinOut[3]);
+  258   1          LCD_P6x8Str(0, 7, LimLine);
+  259   1          Ms_Delay(2000);
+  260   1          LCD_P8x16Str(0, 3, "       ");
+  261   1      }
+  262          
+  263          /// @brief ?ADC?????
+  264          void Get_ADC()
+  265          {
+  266   1          uint8_t  i, j, k;
+  267   1          uint16_t temp, getADC[9];
+  268   1      
+  269   1          for (k = 0; k < 4; k++) {
+  270   2              for (i = 0; i < 9; i++) {
+  271   3                  getADC[i] = ADC_Read_Once(ADC[adcPin[k]], ADC_12BIT);
+  272   3              }
+  273   2              for (i = 1; i <= 9 - 1; i++) /*i??????,???=????-1*/
+  274   2              {
+  275   3                  for (j = 0; j < 9 - i;
+  276   3                       j++) /*j????????,??=??-??-1,?j???0*/
+  277   3                  {
+  278   4                      if (getADC[j] > getADC[j + 1]) /*??????????,???????*/
+  279   4                      {
+  280   5                          temp          = getADC[j];
+  281   5                          getADC[j]     = getADC[j + 1];
+  282   5                          getADC[j + 1] = temp;
+  283   5                      }
+  284   4                  }
+  285   3              }
+  286   2              adcRaw[k] = getADC[5];
+  287   2          }
+  288   1          // adcRaw[0] = ADC_Read_Once(ADC[0], ADC_12BIT);
+  289   1          // adcRaw[1] = ADC_Read_Once(ADC[1], ADC_12BIT);
+  290   1          // adcRaw[2] = ADC_Read_Once(ADC[6], ADC_12BIT);
+  291   1          // adcRaw[3] = ADC_Read_Once(ADC[7], ADC_12BIT);
+  292   1      }
+  293          
+  294          /// @brief ???,????
+  295          float Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin)
+  296          {
+  297   1          uint8_t i;
+  298   1          double  adcAfterNorm[4], adcL, adcR;
+  299   1          char    adcNormLine[4][22];
+  300   1      
+  301   1          for (i = 0; i < 4; i++) {
+  302   2              if (adcRaw[i] > adcMax[i]) // ADC???
+  303   2              {
+  304   3                  adcRaw[i] = adcMax[i];
+  305   3                  GPIO_Write_Bit(LED(i), 0);
+  306   3              } else if (adcRaw[i] < adcMin[i]) // ADC???
+  307   2              {
+  308   3                  adcRaw[i] = adcMin[i];
+  309   3                  GPIO_Write_Bit(LED(i), 0);
+  310   3              }
+  311   2              adcAfterNorm[i] = (float)(adcRaw[i] - adcMin[i]) / (adcMax[i] - adcMin[i]); // ADC????0~1??
+  312   2              sprintf(adcNormLine[i], "%.2f", adcAfterNorm[i]);
+  313   2          }
+  314   1          sprintf(adcNormLine[0], "%s %s   %s %s", adcNormLine[0], adcNormLine[1], adcNormLine[2], adcNormLine[
+             -3]);
+  315   1          LCD_P6x8Str(0, 1, adcNormLine[0]);
+  316   1          adcL = (adcAfterNorm[0] + adcAfterNorm[1]) / 2;
+  317   1          adcR = (adcAfterNorm[2] + adcAfterNorm[3]) / 2;
+  318   1          sprintf(adcNormLine[0], "%.3f           %.3f", adcL, adcR);
+C251 COMPILER V5.60.0,  main                                                               16/11/25  00:35:26  PAGE 6   
+
+  319   1          LCD_P6x8Str(0, 2, adcNormLine[0]);
+  320   1          return (adcL - adcR) / (adcL + adcR);
+  321   1      }
+  322          
+  323          float PID_Calculate(float error, float lastError, float kp, float ki, float kd, float maxAbsI)
+  324          {
+  325   1          float output, sumOfError;
+  326   1          sumOfError += error;
+  327   1          if (sumOfError > maxAbsI)
+  328   1              sumOfError = maxAbsI;
+  329   1          else if (sumOfError < -maxAbsI)
+  330   1              sumOfError = -maxAbsI;
+  331   1          output = kp * error + ki * sumOfError + kd * (error - lastError);
+  332   1          if (output > 1)
+  333   1              output = 1;
+  334   1          else if (output < -1)
+  335   1              output = -1;
+  336   1          lastError = error;
+  337   1          return output;
+  338   1      }
+  339          
+  340          // void Uart_Send_Message(uint16_t *adcRaw)
+  341          // {
+  342          //     UART_PutStr(UART_1, "test");
+  343          // }
+  344          
+  345          void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty)
+  346          {
+  347   1          if (errorInner > 1)
+  348   1              errorInner = 1;
+  349   1          else if (errorInner < -1)
+  350   1              errorInner = -1;
+  351   1          PWM_SET_Frequency(SERVO, 50, midDutyOfServo + (int)maxChangeDuty * errorInner);
+  352   1      }
+  353          
+  354          void Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *adcRaw)
+  355          {
+  356   1          char errorLine[22];
+  357   1          sprintf(errorLine, "%04d %04d   %04d %04d", adcRaw[0], adcRaw[1], adcRaw[2], adcRaw[3]);
+  358   1          LCD_P6x8Str(0, 0, errorLine);
+  359   1          if (errorBeforePID >= 0)
+  360   1              sprintf(errorLine, "+%.4f", errorBeforePID);
+  361   1          else
+  362   1              sprintf(errorLine, "%.4f", errorBeforePID);
+  363   1          if (errorAfterPID >= 0)
+  364   1              sprintf(errorLine, "%s  -->  +%.4f", errorLine, errorAfterPID);
+  365   1          else
+  366   1              sprintf(errorLine, "%s  -->  %.4f", errorLine, errorAfterPID);
+  367   1          LCD_P6x8Str(0, 4, errorLine);
+  368   1      
+  369   1          // bitOfError[0] = errorToDisplay % 10;
+  370   1          // bitOfError[1] = (errorToDisplay / 10) % 10;
+  371   1          // bitOfError[2] = (errorToDisplay / 100) % 10;
+  372   1          // bitOfError[3] = errorToDisplay / 1000;
+  373   1          // if (error >= 0)
+  374   1          //     sprintf(errorLine[0], "E = +%d.%d%d%d", bitOfError[3],
+  375   1          //             bitOfError[2], bitOfError[1], bitOfError[0]);
+  376   1          // else
+  377   1          //     sprintf(errorLine[0], "E = -%d.%d%d%d", bitOfError[3],
+  378   1          //             bitOfError[2], bitOfError[1], bitOfError[0]);
+  379   1          // LCD_P8x16Str(0, 4, errorLine[0]);
+  380   1          // LCD_PrintFloat(0, 4, error, 4);
+  381   1          // for (i = 0; i < 4; i++) {
+  382   1          //     errorToDisplay = adcRaw[i];
+  383   1          //     bitOfError[0]  = errorToDisplay % 10;
+  384   1          //     bitOfError[1]  = (errorToDisplay / 10) % 10;
+C251 COMPILER V5.60.0,  main                                                               16/11/25  00:35:26  PAGE 7   
+
+  385   1          //     bitOfError[2]  = (errorToDisplay / 100) % 10;
+  386   1          //     bitOfError[3]  = errorToDisplay / 1000;
+  387   1          //     sprintf(errorLine[i], "%d%d%d%d", bitOfError[3],
+  388   1          //             bitOfError[2], bitOfError[1], bitOfError[0]);
+  389   1          // }
+  390   1          // sprintf(errorLine[0], "%s %s   %s %s", errorLine[0], errorLine[1], errorLine[2], errorLine[3]);
+  391   1          // LCD_P6x8Str(0, 0, errorLine[0]);
+  392   1      }
+  393          
+  394          void Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float lastError)
+  395          {
+  396   1          int speed = (int)((maxSpeed - minSpeed) * abs(currentError - lastError) / 2) + minSpeed;
+  397   1          if (speed > maxSpeed)
+  398   1              speed = maxSpeed;
+  399   1          else if (speed < minSpeed)
+  400   1              speed = minSpeed;
+  401   1          PWM_SET_Duty(MOTOR_L, 10000 - speed);
+  402   1          PWM_SET_Duty(MOTOR_R, 10000 - speed);
+  403   1      }
+  404          
+  405          void Stop_Inner()
+  406          {
+  407   1          PWM_SET_Frequency(SERVO, 50, midDutyOfServo);
+  408   1          PWM_SET_Duty(MOTOR_L, 10000);
+  409   1          PWM_SET_Duty(MOTOR_R, 10000);
+  410   1      }
+  411          
+  412          void BIOS_1()
+  413          {
+  414   1          char biosLine[16];
+  415   1          Stop_Inner();
+  416   1          LCD_P8x16Str(0, 0, "    BIOS  1    ");
+  417   1          LCD_P8x16Str(0, 1, "---------------");
+  418   1          sprintf(biosLine, "MaxSpeed = %d", maxSpeed);
+  419   1          LCD_P8x16Str(0, 2, biosLine);
+  420   1          sprintf(biosLine, "K1 = %0.2f  ", ki);
+  421   1          LCD_P8x16Str(0, 3, biosLine);
+  422   1      }
+  423          
+  424          // void P0_EXTI_Activated() interrupt P0INT_VECTOR
+  425          // {
+  426          //     GPIO_EXTI_Flag_Read(GPIO_P0);
+  427          //     if (Port_Exti_Flag[0]) {
+  428          //         GPIO_EXTI_Flag_Clear(GPIO_P0);
+  429          //         if (Port_Exti_Flag[0] & Port_Pin_7) {
+  430          //             if (biosKey % 3 == 1)
+  431          //                 maxSpeed += 50;
+  432          //             else if (biosKey % 3 == 2)
+  433          //                 minSpeed += 50;
+  434          //         } else if (Port_Exti_Flag[0] & Port_Pin_6) {
+  435          //             if (biosKey % 3 == 1)
+  436          //                 maxSpeed -= 50;
+  437          //             else if (biosKey % 3 == 2)
+  438          //                 minSpeed -= 50;
+  439          //         }
+  440          //     }
+  441          // }
+  442          
+  443          // void P4_EXTI_Activated() interrupt P4INT_VECTOR
+  444          // {
+  445          //     GPIO_EXTI_Flag_Read(GPIO_P4);
+  446          //     if (Port_Exti_Flag[4]) {
+  447          //         GPIO_EXTI_Flag_Clear(GPIO_P4);
+  448          //         if (Port_Exti_Flag[4] & Port_Pin_2) {
+  449          //             if (biosKey % 3 == 1)
+  450          //                 ki += 0.01;
+C251 COMPILER V5.60.0,  main                                                               16/11/25  00:35:26  PAGE 8   
+
+  451          //             else if (biosKey % 3 == 2)
+  452          //                 maxAbsI++;
+  453          //         } else if (Port_Exti_Flag[4] & Port_Pin_6) {
+  454          //             if (biosKey % 3 == 1)
+  455          //                 ki -= 0.01;
+  456          //             else if (biosKey % 3 == 2)
+  457          //                 maxAbsI--;
+  458          //         } else if (Port_Exti_Flag[4] & Port_Pin_5) {
+  459          //             if (biosKey % 3 == 1)
+  460          //                 kp += 0.1;
+  461          //             else if (biosKey % 3 == 2)
+  462          //                 kd += 0.05;
+  463          //         } else if (Port_Exti_Flag[4] & Port_Pin_1) {
+  464          //             if (biosKey % 3 == 1)
+  465          //                 kp -= 0.1;
+  466          //             else if (biosKey % 3 == 2)
+  467          //                 kd -= 0.05;
+  468          //         }
+  469          //     }
+  470          // }
 
 
 Module Information          Static   Overlayable
 ------------------------------------------------
-  code size            =      2194     ------
+  code size            =      2677     ------
   ecode size           =    ------     ------
   data size            =    ------     ------
   idata size           =    ------     ------
   pdata size           =    ------     ------
   xdata size           =    ------     ------
   xdata-const size     =    ------     ------
-  edata size           =        81        115
+  edata size           =        83        280
   bit size             =    ------     ------
   ebit size            =    ------     ------
   bitaddressable size  =    ------     ------
@@ -334,8 +515,8 @@ Module Information          Static   Overlayable
   far data size        =    ------     ------
   huge data size       =    ------     ------
   const size           =    ------     ------
-  hconst size          =       185     ------
+  hconst size          =       394     ------
 End of Module Information.
 
 
-C251 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

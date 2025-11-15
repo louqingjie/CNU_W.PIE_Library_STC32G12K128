@@ -34,9 +34,10 @@ char KEYPin[2] = {GPIO_Pin_7, GPIO_Pin_6};
 #define BUZZER PWMB_CH3_P33
 
 // 全局变量
-uint16_t adcMaxOut[4] = {20, 0, 0, 0}, adcMinOut[4] = {1000, 1000, 1000, 1000}, adcRaw[4], biosKey = 0;
+uint16_t adcMaxOut[4] = {20, 0, 0, 0}, adcMinOut[4] = {1000, 1000, 1000, 1000}, adcRaw[4], biosKey = 0, enter;
 uint8_t  times;
 float    currentError, pidOut, lastError;
+char     limLine[22];
 
 // 声明区
 void  All_Init();
@@ -51,44 +52,48 @@ void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t 
 void Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float lastError);
 void Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *adcRaw);
 void Stop_Inner();
-void BIOS_1();
+void BIOS(uint8_t biosKey);
 
 void main()
 {
     All_Init();
-    PWM_SET_Frequency(BUZZER, 1000, 5000);
-    // ADC_Norm_Fast();
+    ADC_Norm_Fast();
     // // ADC_Norm_Slow(adcMaxOut, adcMinOut);
     // // PIT_Timer_Ms(TIM0, timerMs);
-    // LCD_P6x8Str(0, 3, "---------------------");
-    // LCD_P6x8Str(0, 5, "---------------------");
-    // while (1) {
-    //     while (GPIO_Read_Bit(DPAD_MID) == 0) {
-    //         while (biosKey % 3 == 1)
-    //             BIOS_1();
-    //         Get_ADC();
-    //         while (adcRaw[0] < adcMinOut[0] &&
-    //                adcRaw[1] < adcMinOut[1] &&
-    //                adcRaw[2] < adcMinOut[2] &&
-    //                adcRaw[3] < adcMinOut[3]) {
-    //             Go(0, 0, 0, 0);
-    //             Get_ADC();
-    //         };
-    //         // currentError = (sqrt((float)adcRaw[0] * adcRaw[1]) - sqrt((float)adcRaw[2] * adcRaw[3])) /
-    //         //                (sqrt((float)adcRaw[0] * adcRaw[1]) + sqrt((float)adcRaw[2] * adcRaw[3]));
-    //         currentError = Normalization(adcRaw, adcMaxOut, adcMinOut);
-    //         pidOut       = PID_Calculate(currentError, lastError, kp, ki, kd, maxAbsI);
+    while (1) {
+        enter = 0;
+        if (biosKey % 4)
+            LCD_CLS();
+        while (biosKey % 4) {
+            BIOS(biosKey % 4);
+            enter = 1;
+        }
+        if (enter) {
+            LCD_CLS();
+            sprintf(limLine, "%04d %04d   %04d %04d", adcMaxOut[0], adcMaxOut[1], adcMaxOut[2], adcMaxOut[3]);
+            LCD_P6x8Str(0, 6, limLine);
+            sprintf(limLine, "%04d %04d   %04d %04d", adcMinOut[0], adcMinOut[1], adcMinOut[2], adcMinOut[3]);
+            LCD_P6x8Str(0, 7, limLine);
+        }
+        Get_ADC();
+        while (adcRaw[0] < adcMinOut[0] &&
+               adcRaw[1] < adcMinOut[1] &&
+               adcRaw[2] < adcMinOut[2] &&
+               adcRaw[3] < adcMinOut[3]) {
+            Go(0, 0, 0, 0);
+            Get_ADC();
+        };
+        // currentError = (sqrt((float)adcRaw[0] * adcRaw[1]) - sqrt((float)adcRaw[2] * adcRaw[3])) /
+        //                (sqrt((float)adcRaw[0] * adcRaw[1]) + sqrt((float)adcRaw[2] * adcRaw[3]));
+        currentError = Normalization(adcRaw, adcMaxOut, adcMinOut);
+        pidOut       = PID_Calculate(currentError, lastError, kp, ki, kd, maxAbsI);
 
-    //         Show_Error_On_Sceen(currentError, pidOut, adcRaw);
-    //         Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty);
-    //         Go(minSpeed, maxSpeed, currentError, lastError);
-    //         lastError = currentError;
-    //         Ms_Delay(50);
-    //     }
-    //     while (GPIO_Read_Bit(DPAD_MID) == 1)
-    //         ;
-    //     biosKey++;
-    // }
+        Show_Error_On_Sceen(currentError, pidOut, adcRaw);
+        Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty);
+        Go(minSpeed, maxSpeed, currentError, lastError);
+        lastError = currentError;
+        Ms_Delay(50);
+    }
 }
 
 // void PIT0_Activated() interrupt TMR0_VECTOR
@@ -135,12 +140,14 @@ void All_Init()
     GPIO_Init(DPAD_RIGHT, GPIO_PullUp);
     GPIO_Init(DPAD_MID, GPIO_PullUp);
 
-    PWM_Init(BUZZER, 1000, 10000);
+    // PWM_Init(BUZZER, 1000, 10000);
 
     GPIO_EXTI_Init(KEY(0), FALLING_EDGE);
     GPIO_EXTI_Open(KEY(0));
     GPIO_EXTI_Init(KEY(1), FALLING_EDGE);
     GPIO_EXTI_Open(KEY(1));
+    // GPIO_EXTI_Init(DPAD_MID, FALLING_EDGE);
+    // GPIO_EXTI_Open(DPAD_MID);
     GPIO_EXTI_Init(DPAD_UP, FALLING_EDGE);
     GPIO_EXTI_Open(DPAD_UP);
     GPIO_EXTI_Init(DPAD_DOWN, FALLING_EDGE);
@@ -149,8 +156,9 @@ void All_Init()
     GPIO_EXTI_Open(DPAD_LEFT);
     GPIO_EXTI_Init(DPAD_RIGHT, FALLING_EDGE);
     GPIO_EXTI_Open(DPAD_RIGHT);
-    GPIO_EXTI_Init(DPAD_MID, FALLING_EDGE);
-    GPIO_EXTI_Open(DPAD_MID);
+    // GPIO_EXTI_Set_Priority(GPIO_P2, Highest_priority);
+    GPIO_EXTI_Set_Priority(GPIO_P0, Second_priority);
+    GPIO_EXTI_Set_Priority(GPIO_P4, Third_priority);
 
     LCD_Init();
 }
@@ -242,7 +250,7 @@ void ADC_Norm_Fast()
     char     LimLine[22];
     uint16_t i, j, getADC[4];
     LCD_P8x16Str(0, 3, "NORM...");
-    for (i = 0; i < 50000; i++) {
+    for (i = 0; i < 30000; i++) {
         for (j = 0; j < 4; j++) {
             getADC[j] = ADC_Read_Once(ADC[adcPin[j]], ADC_12BIT);
             if (adcMaxOut[j] < getADC[j])
@@ -256,7 +264,7 @@ void ADC_Norm_Fast()
     LCD_P6x8Str(0, 6, LimLine);
     sprintf(LimLine, "%04d %04d   %04d %04d", adcMinOut[0], adcMinOut[1], adcMinOut[2], adcMinOut[3]);
     LCD_P6x8Str(0, 7, LimLine);
-    Ms_Delay(2000);
+    Ms_Delay(1000);
     LCD_P8x16Str(0, 3, "       ");
 }
 
@@ -297,31 +305,42 @@ float Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin)
     uint8_t i;
     double  adcAfterNorm[4], adcL, adcR;
     char    adcNormLine[4][22];
+    uint8_t warningOfADC[4], xOfWarning[4] = {4, 9, 11, 17};
 
     for (i = 0; i < 4; i++) {
         if (adcRaw[i] > adcMax[i]) // ADC超上限
         {
             adcRaw[i] = adcMax[i];
             GPIO_Write_Bit(LED(i), 0);
+            warningOfADC[i] = 1;
         } else if (adcRaw[i] < adcMin[i]) // ADC超下限
         {
             adcRaw[i] = adcMin[i];
             GPIO_Write_Bit(LED(i), 0);
-        }
+            warningOfADC[i] = -1;
+        } else
+            warningOfADC[i] = 0;
         adcAfterNorm[i] = (float)(adcRaw[i] - adcMin[i]) / (adcMax[i] - adcMin[i]); // ADC归一化至0~1的值
         sprintf(adcNormLine[i], "%.2f", adcAfterNorm[i]);
     }
+    if (warningOfADC[i] == 1)
+        LCD_P6x8Str(xOfWarning[i], 0, "!");
+    else if (warningOfADC[i] == 1)
+        LCD_P6x8Str(xOfWarning[i], 1, "!");
     sprintf(adcNormLine[0], "%s %s   %s %s", adcNormLine[0], adcNormLine[1], adcNormLine[2], adcNormLine[3]);
     LCD_P6x8Str(0, 1, adcNormLine[0]);
     adcL = (adcAfterNorm[0] + adcAfterNorm[1]) / 2;
     adcR = (adcAfterNorm[2] + adcAfterNorm[3]) / 2;
-    sprintf(adcNormLine[0], "%.3f           %.3f", adcL, adcR);
+    sprintf(adcNormLine[0], "%.3f->", adcL);
     LCD_P6x8Str(0, 2, adcNormLine[0]);
-    return (adcL - adcR) / (adcL + adcR);
+    sprintf(adcNormLine[0], "<-%.3f", adcR);
+    LCD_P6x8Str(84, 2, adcNormLine[0]);
+    return (adcL - adcR) / (adcL + adcR + 0.001);
 }
 
 float PID_Calculate(float error, float lastError, float kp, float ki, float kd, float maxAbsI)
 {
+    char  pidLine[50];
     float output, sumOfError;
     sumOfError += error;
     if (sumOfError > maxAbsI)
@@ -334,6 +353,8 @@ float PID_Calculate(float error, float lastError, float kp, float ki, float kd, 
     else if (output < -1)
         output = -1;
     lastError = error;
+    sprintf("%0.1f * %0.2f(%0.2f) + %0.2f * %0.2f(%0.2f) + %0.2f * %0.2f(%0.2f) = %0.2f", kp, error, kp * error, ki, sumOfError, ki * sumOfError, kd, error - lastError, kd * (error - lastError));
+    LCD_P6x8Str(0,3,pidLine);
     return output;
 }
 
@@ -360,11 +381,11 @@ void Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *ad
         sprintf(errorLine, "+%.4f", errorBeforePID);
     else
         sprintf(errorLine, "%.4f", errorBeforePID);
+    LCD_P6x8Str(42, 2, errorLine);
     if (errorAfterPID >= 0)
         sprintf(errorLine, "%s  -->  +%.4f", errorLine, errorAfterPID);
     else
         sprintf(errorLine, "%s  -->  %.4f", errorLine, errorAfterPID);
-    LCD_P6x8Str(0, 4, errorLine);
 
     // bitOfError[0] = errorToDisplay % 10;
     // bitOfError[1] = (errorToDisplay / 10) % 10;
@@ -409,62 +430,96 @@ void Stop_Inner()
     PWM_SET_Duty(MOTOR_R, 10000);
 }
 
-void BIOS_1()
+void BIOS(uint8_t page)
 {
     char biosLine[16];
     Stop_Inner();
-    LCD_P8x16Str(0, 0, "    BIOS  1    ");
-    LCD_P8x16Str(0, 1, "---------------");
-    sprintf(biosLine, "MaxSpeed = %d", maxSpeed);
-    LCD_P8x16Str(0, 2, biosLine);
-    sprintf(biosLine, "K1 = %0.2f  ", ki);
-    LCD_P8x16Str(0, 3, biosLine);
+    switch (page) {
+    case 1:
+        LCD_P8x16Str(0, 0, "     BIOS 1    ");
+        LCD_P6x8Str(0, 2, "---------------------");
+        sprintf(biosLine, "Max Speed = %d", maxSpeed / 10);
+        LCD_P8x16Str(0, 3, biosLine);
+        sprintf(biosLine, "Kp = %0.2f  ", kp);
+        LCD_P8x16Str(0, 6, biosLine);
+        break;
+    case 2:
+        LCD_P8x16Str(0, 0, "     BIOS 2    ");
+        LCD_P6x8Str(0, 2, "---------------------");
+        sprintf(biosLine, "Min Speed = %d", maxSpeed / 10);
+        LCD_P8x16Str(0, 3, biosLine);
+        sprintf(biosLine, "Ki = %0.2f  ", ki);
+        LCD_P8x16Str(0, 6, biosLine);
+        break;
+    case 3:
+        LCD_P8x16Str(0, 0, "     BIOS 3    ");
+        LCD_P6x8Str(0, 2, "---------------------");
+        sprintf(biosLine, "MaxI = %02.2f    ", maxAbsI);
+        LCD_P8x16Str(0, 3, biosLine);
+        sprintf(biosLine, "Kd = %0.2f  ", kd);
+        LCD_P8x16Str(0, 6, biosLine);
+        break;
+    default:
+        break;
+    }
 }
 
-// void P0_EXTI_Activated() interrupt P0INT_VECTOR
-// {
-//     GPIO_EXTI_Flag_Read(GPIO_P0);
-//     if (Port_Exti_Flag[0]) {
-//         GPIO_EXTI_Flag_Clear(GPIO_P0);
-//         if (Port_Exti_Flag[0] & Port_Pin_7) {
-//             if (biosKey % 3 == 1)
-//                 maxSpeed += 50;
-//             else if (biosKey % 3 == 2)
-//                 minSpeed += 50;
-//         } else if (Port_Exti_Flag[0] & Port_Pin_6) {
-//             if (biosKey % 3 == 1)
-//                 maxSpeed -= 50;
-//             else if (biosKey % 3 == 2)
-//                 minSpeed -= 50;
-//         }
-//     }
-// }
+void P0_EXTI_Activated() interrupt P0INT_VECTOR
+{
+    GPIO_EXTI_Flag_Read(GPIO_P0);
+    if (Port_Exti_Flag[0]) {
+        GPIO_EXTI_Flag_Clear(GPIO_P0);
+        if (Port_Exti_Flag[0] & Port_Pin_7) {
+            biosKey++;
+        } else if (Port_Exti_Flag[0] & Port_Pin_6) {
+            biosKey = 0;
+        }
+    }
+}
 
-// void P4_EXTI_Activated() interrupt P4INT_VECTOR
+void P4_EXTI_Activated() interrupt P4INT_VECTOR
+{
+    GPIO_EXTI_Flag_Read(GPIO_P4);
+    if (Port_Exti_Flag[4]) {
+        GPIO_EXTI_Flag_Clear(GPIO_P4);
+        if (Port_Exti_Flag[4] & Port_Pin_2) {
+            if (biosKey % 4 == 1)
+                maxSpeed += 50;
+            else if (biosKey % 4 == 2)
+                minSpeed += 50;
+            else if (biosKey % 4 == 3)
+                maxAbsI += 0.5;
+        } else if (Port_Exti_Flag[4] & Port_Pin_6) {
+            if (biosKey % 4 == 1)
+                maxSpeed -= 50;
+            else if (biosKey % 4 == 2)
+                minSpeed -= 50;
+            else if (biosKey % 4 == 3)
+                maxAbsI -= 0.5;
+        } else if (Port_Exti_Flag[4] & Port_Pin_1) {
+            if (biosKey % 4 == 1)
+                kp += 0.1;
+            else if (biosKey % 4 == 2)
+                ki += 0.01;
+            else if (biosKey % 4 == 3)
+                kd += 0.05;
+        } else if (Port_Exti_Flag[4] & Port_Pin_5) {
+            if (biosKey % 4 == 1)
+                kp -= 0.1;
+            else if (biosKey % 4 == 2)
+                ki -= 0.01;
+            else if (biosKey % 4 == 3)
+                kd -= 0.05;
+        }
+    }
+}
+
+// void P2_EXTI_Activated() interrupt P2INT_VECTOR
 // {
-//     GPIO_EXTI_Flag_Read(GPIO_P4);
-//     if (Port_Exti_Flag[4]) {
-//         GPIO_EXTI_Flag_Clear(GPIO_P4);
-//         if (Port_Exti_Flag[4] & Port_Pin_2) {
-//             if (biosKey % 3 == 1)
-//                 ki += 0.01;
-//             else if (biosKey % 3 == 2)
-//                 maxAbsI++;
-//         } else if (Port_Exti_Flag[4] & Port_Pin_6) {
-//             if (biosKey % 3 == 1)
-//                 ki -= 0.01;
-//             else if (biosKey % 3 == 2)
-//                 maxAbsI--;
-//         } else if (Port_Exti_Flag[4] & Port_Pin_5) {
-//             if (biosKey % 3 == 1)
-//                 kp += 0.1;
-//             else if (biosKey % 3 == 2)
-//                 kd += 0.05;
-//         } else if (Port_Exti_Flag[4] & Port_Pin_1) {
-//             if (biosKey % 3 == 1)
-//                 kp -= 0.1;
-//             else if (biosKey % 3 == 2)
-//                 kd -= 0.05;
-//         }
+//     GPIO_EXTI_Flag_Read(GPIO_P2);
+//     if (Port_Exti_Flag[2]) {
+//         GPIO_EXTI_Flag_Clear(GPIO_P0);
+//         if (Port_Exti_Flag[2] & Port_Pin_7)
+//             biosKey++;
 //     }
 // }

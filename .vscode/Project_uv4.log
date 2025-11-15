@@ -1,7 +1,6 @@
 Build target 'Project'
 compiling main.c...
-linking...
-Program Size: data=8.1 edata+hdata=1446 xdata=0 const=3831 code=23538
-creating hex file from ".\Objects\Project_Template"...
-".\Objects\Project_Template" - 0 Error(s), 0 Warning(s).
-Build Time Elapsed:  00:00:01
+..\USER\src\main.c(68): warning C188: 'parameter 1': value truncated
+..\USER\src\main.c(356): error C84: illegal type conversion
+Target not created.
+Build Time Elapsed:  00:00:00

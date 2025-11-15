@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  CNU_PIE_SPI                                                        15/11/25  16:51:33  PAGE 1   
+C251 COMPILER V5.60.0,  CNU_PIE_SPI                                                        16/11/25  00:35:26  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE CNU_PIE_SPI
@@ -66,7 +66,7 @@ stmt  level    source
    49   2          case SPI_4:P_SW1 |= (0x03<<2);
    50   2              break;
    51   2        }
-C251 COMPILER V5.60.0,  CNU_PIE_SPI                                                        15/11/25  16:51:33  PAGE 2   
+C251 COMPILER V5.60.0,  CNU_PIE_SPI                                                        16/11/25  00:35:26  PAGE 2   
 
    52   1        if(SS_CFG) SSIG = 0;//使能SS 通过SS引脚确认主设备还是从设备
    53   1        else SSIG = 1;      //禁用SS 通过SPI模式选择主从设备
@@ -134,7 +134,7 @@ stmt  level    source
   110           * @endcode
   111           * @retval data   SPI读取的数据
   112          *********************************************************************************************************
-C251 COMPILER V5.60.0,  CNU_PIE_SPI                                                        15/11/25  16:51:33  PAGE 3   
+C251 COMPILER V5.60.0,  CNU_PIE_SPI                                                        16/11/25  00:35:26  PAGE 3   
 
              -******************/
   113          uint8_t SPI_ReadByte(void)

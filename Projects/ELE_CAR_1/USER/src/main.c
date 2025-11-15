@@ -8,8 +8,8 @@ float    kd             = 0.1;
 float    maxAbsI        = 5;  // ?????
 uint8_t  timerTimes     = 5;  // ???????
 uint8_t  timerMs        = 10; // ???????
-uint16_t maxSpeed       = 1000;
-uint16_t minSpeed       = 800;
+uint16_t maxSpeed       = 1200;
+uint16_t minSpeed       = 1100;
 uint16_t midDutyOfServo = 730;
 uint16_t maxChangeDuty  = 130;
 uint8_t  adcPin[4]      = {0, 1, 6, 7};
@@ -34,7 +34,7 @@ char KEYPin[2] = {GPIO_Pin_7, GPIO_Pin_6};
 #define BUZZER PWMB_CH3_P33
 
 // ????
-uint16_t adcMaxOut[4], adcMinOut[4], adcRaw[4];
+uint16_t adcMaxOut[4] = {20, 0, 0, 0}, adcMinOut[4] = {1000, 1000, 1000, 1000}, adcRaw[4], biosKey = 0;
 uint8_t  times;
 float    currentError, pidOut, lastError;
 
@@ -42,35 +42,66 @@ float    currentError, pidOut, lastError;
 void  All_Init();
 void  beep(uint16_t freq, uint16_t duty, uint16_t beepTime, uint16_t sleepTime);
 void  ADC_Norm_Slow(uint16_t *adcMax, uint16_t *adcMin);
-void  Get_ADC(uint16_t *adcRaw);
+void  ADC_Norm_Fast();
+void  Get_ADC();
 float Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin);
 float PID_Calculate(float error, float lastError, float kp, float ki, float kd, float maxAbsI);
-void Uart_Send_Message(uint16_t *adcRaw);
-void  Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty);
-void  Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float lastError);
+// void  Uart_Send_Message(uint16_t *adcRaw);
+void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty);
+void Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float lastError);
+void Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *adcRaw);
+void Stop_Inner();
+void BIOS_1();
 
 void main()
 {
     All_Init();
-    ADC_Norm_Slow(adcMaxOut, adcMinOut);
-    PIT_Timer_Ms(TIM0, timerMs);
-    while (1) {
-        Get_ADC(adcRaw);
-        currentError = Normalization(adcRaw, adcMaxOut, adcMinOut);
-        pidOut       = PID_Calculate(currentError, lastError, kp, ki, kd, maxAbsI);
-        Go(minSpeed, maxSpeed, currentError, lastError);
-    }
+    PWM_SET_Frequency(BUZZER, 1000, 5000);
+    // ADC_Norm_Fast();
+    // // ADC_Norm_Slow(adcMaxOut, adcMinOut);
+    // // PIT_Timer_Ms(TIM0, timerMs);
+    // LCD_P6x8Str(0, 3, "---------------------");
+    // LCD_P6x8Str(0, 5, "---------------------");
+    // while (1) {
+    //     while (GPIO_Read_Bit(DPAD_MID) == 0) {
+    //         while (biosKey % 3 == 1)
+    //             BIOS_1();
+    //         Get_ADC();
+    //         while (adcRaw[0] < adcMinOut[0] &&
+    //                adcRaw[1] < adcMinOut[1] &&
+    //                adcRaw[2] < adcMinOut[2] &&
+    //                adcRaw[3] < adcMinOut[3]) {
+    //             Go(0, 0, 0, 0);
+    //             Get_ADC();
+    //         };
+    //         // currentError = (sqrt((float)adcRaw[0] * adcRaw[1]) - sqrt((float)adcRaw[2] * adcRaw[3])) /
+    //         //                (sqrt((float)adcRaw[0] * adcRaw[1]) + sqrt((float)adcRaw[2] * adcRaw[3]));
+    //         currentError = Normalization(adcRaw, adcMaxOut, adcMinOut);
+    //         pidOut       = PID_Calculate(currentError, lastError, kp, ki, kd, maxAbsI);
+
+    //         Show_Error_On_Sceen(currentError, pidOut, adcRaw);
+    //         Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty);
+    //         Go(minSpeed, maxSpeed, currentError, lastError);
+    //         lastError = currentError;
+    //         Ms_Delay(50);
+    //     }
+    //     while (GPIO_Read_Bit(DPAD_MID) == 1)
+    //         ;
+    //     biosKey++;
+    // }
 }
 
-void PIT0_Activated() interrupt TMR0_VECTOR
-{
-    times++;
-    if (times >= (timerTimes - 1)) {
-        Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty);
-        times = 0;
-        Uart_Send_Message(adcRaw);
-    }
-}
+// void PIT0_Activated() interrupt TMR0_VECTOR
+// {
+//     times++;
+//     if (times >= (timerTimes - 1)) {
+//         Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty);
+
+//         times = 0;
+
+//         // Uart_Send_Message(adcRaw);
+//     }
+// }
 
 /// @brief ?????
 void All_Init()
@@ -104,7 +135,7 @@ void All_Init()
     GPIO_Init(DPAD_RIGHT, GPIO_PullUp);
     GPIO_Init(DPAD_MID, GPIO_PullUp);
 
-    // PWM_Init(BUZZER, 1000, 10000);
+    PWM_Init(BUZZER, 1000, 10000);
 
     GPIO_EXTI_Init(KEY(0), FALLING_EDGE);
     GPIO_EXTI_Open(KEY(0));
@@ -118,6 +149,8 @@ void All_Init()
     GPIO_EXTI_Open(DPAD_LEFT);
     GPIO_EXTI_Init(DPAD_RIGHT, FALLING_EDGE);
     GPIO_EXTI_Open(DPAD_RIGHT);
+    GPIO_EXTI_Init(DPAD_MID, FALLING_EDGE);
+    GPIO_EXTI_Open(DPAD_MID);
 
     LCD_Init();
 }
@@ -204,8 +237,31 @@ void ADC_Norm_Slow(uint16_t *adcMax, uint16_t *adcMin)
     LCD_CLS();
 }
 
+void ADC_Norm_Fast()
+{
+    char     LimLine[22];
+    uint16_t i, j, getADC[4];
+    LCD_P8x16Str(0, 3, "NORM...");
+    for (i = 0; i < 50000; i++) {
+        for (j = 0; j < 4; j++) {
+            getADC[j] = ADC_Read_Once(ADC[adcPin[j]], ADC_12BIT);
+            if (adcMaxOut[j] < getADC[j])
+                adcMaxOut[j] = getADC[j];
+            else if (adcMinOut[j] > getADC[j])
+                adcMinOut[j] = getADC[j];
+        }
+    }
+    LCD_P8x16Str(0, 3, "FINISH!");
+    sprintf(LimLine, "%04d %04d   %04d %04d", adcMaxOut[0], adcMaxOut[1], adcMaxOut[2], adcMaxOut[3]);
+    LCD_P6x8Str(0, 6, LimLine);
+    sprintf(LimLine, "%04d %04d   %04d %04d", adcMinOut[0], adcMinOut[1], adcMinOut[2], adcMinOut[3]);
+    LCD_P6x8Str(0, 7, LimLine);
+    Ms_Delay(2000);
+    LCD_P8x16Str(0, 3, "       ");
+}
+
 /// @brief ?ADC?????
-void Get_ADC(uint16_t *adcRaw)
+void Get_ADC()
 {
     uint8_t  i, j, k;
     uint16_t temp, getADC[9];
@@ -229,6 +285,10 @@ void Get_ADC(uint16_t *adcRaw)
         }
         adcRaw[k] = getADC[5];
     }
+    // adcRaw[0] = ADC_Read_Once(ADC[0], ADC_12BIT);
+    // adcRaw[1] = ADC_Read_Once(ADC[1], ADC_12BIT);
+    // adcRaw[2] = ADC_Read_Once(ADC[6], ADC_12BIT);
+    // adcRaw[3] = ADC_Read_Once(ADC[7], ADC_12BIT);
 }
 
 /// @brief ???,????
@@ -236,6 +296,7 @@ float Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin)
 {
     uint8_t i;
     double  adcAfterNorm[4], adcL, adcR;
+    char    adcNormLine[4][22];
 
     for (i = 0; i < 4; i++) {
         if (adcRaw[i] > adcMax[i]) // ADC???
@@ -248,9 +309,14 @@ float Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin)
             GPIO_Write_Bit(LED(i), 0);
         }
         adcAfterNorm[i] = (float)(adcRaw[i] - adcMin[i]) / (adcMax[i] - adcMin[i]); // ADC????0~1??
+        sprintf(adcNormLine[i], "%.2f", adcAfterNorm[i]);
     }
-    adcL = sqrt(adcAfterNorm[0] * adcAfterNorm[1]);
-    adcR = sqrt(adcAfterNorm[2] * adcAfterNorm[3]);
+    sprintf(adcNormLine[0], "%s %s   %s %s", adcNormLine[0], adcNormLine[1], adcNormLine[2], adcNormLine[3]);
+    LCD_P6x8Str(0, 1, adcNormLine[0]);
+    adcL = (adcAfterNorm[0] + adcAfterNorm[1]) / 2;
+    adcR = (adcAfterNorm[2] + adcAfterNorm[3]) / 2;
+    sprintf(adcNormLine[0], "%.3f           %.3f", adcL, adcR);
+    LCD_P6x8Str(0, 2, adcNormLine[0]);
     return (adcL - adcR) / (adcL + adcR);
 }
 
@@ -271,10 +337,10 @@ float PID_Calculate(float error, float lastError, float kp, float ki, float kd, 
     return output;
 }
 
-void Uart_Send_Message(uint16_t *adcRaw)
-{
-    UART_PutStr(UART_1, "test");
-}
+// void Uart_Send_Message(uint16_t *adcRaw)
+// {
+//     UART_PutStr(UART_1, "test");
+// }
 
 void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty)
 {
@@ -282,7 +348,47 @@ void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t 
         errorInner = 1;
     else if (errorInner < -1)
         errorInner = -1;
-    PWM_SET_Duty(SERVO, midDutyOfServo + (int)maxChangeDuty * errorInner);
+    PWM_SET_Frequency(SERVO, 50, midDutyOfServo + (int)maxChangeDuty * errorInner);
+}
+
+void Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *adcRaw)
+{
+    char errorLine[22];
+    sprintf(errorLine, "%04d %04d   %04d %04d", adcRaw[0], adcRaw[1], adcRaw[2], adcRaw[3]);
+    LCD_P6x8Str(0, 0, errorLine);
+    if (errorBeforePID >= 0)
+        sprintf(errorLine, "+%.4f", errorBeforePID);
+    else
+        sprintf(errorLine, "%.4f", errorBeforePID);
+    if (errorAfterPID >= 0)
+        sprintf(errorLine, "%s  -->  +%.4f", errorLine, errorAfterPID);
+    else
+        sprintf(errorLine, "%s  -->  %.4f", errorLine, errorAfterPID);
+    LCD_P6x8Str(0, 4, errorLine);
+
+    // bitOfError[0] = errorToDisplay % 10;
+    // bitOfError[1] = (errorToDisplay / 10) % 10;
+    // bitOfError[2] = (errorToDisplay / 100) % 10;
+    // bitOfError[3] = errorToDisplay / 1000;
+    // if (error >= 0)
+    //     sprintf(errorLine[0], "E = +%d.%d%d%d", bitOfError[3],
+    //             bitOfError[2], bitOfError[1], bitOfError[0]);
+    // else
+    //     sprintf(errorLine[0], "E = -%d.%d%d%d", bitOfError[3],
+    //             bitOfError[2], bitOfError[1], bitOfError[0]);
+    // LCD_P8x16Str(0, 4, errorLine[0]);
+    // LCD_PrintFloat(0, 4, error, 4);
+    // for (i = 0; i < 4; i++) {
+    //     errorToDisplay = adcRaw[i];
+    //     bitOfError[0]  = errorToDisplay % 10;
+    //     bitOfError[1]  = (errorToDisplay / 10) % 10;
+    //     bitOfError[2]  = (errorToDisplay / 100) % 10;
+    //     bitOfError[3]  = errorToDisplay / 1000;
+    //     sprintf(errorLine[i], "%d%d%d%d", bitOfError[3],
+    //             bitOfError[2], bitOfError[1], bitOfError[0]);
+    // }
+    // sprintf(errorLine[0], "%s %s   %s %s", errorLine[0], errorLine[1], errorLine[2], errorLine[3]);
+    // LCD_P6x8Str(0, 0, errorLine[0]);
 }
 
 void Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float lastError)
@@ -295,3 +401,70 @@ void Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float lastErro
     PWM_SET_Duty(MOTOR_L, 10000 - speed);
     PWM_SET_Duty(MOTOR_R, 10000 - speed);
 }
+
+void Stop_Inner()
+{
+    PWM_SET_Frequency(SERVO, 50, midDutyOfServo);
+    PWM_SET_Duty(MOTOR_L, 10000);
+    PWM_SET_Duty(MOTOR_R, 10000);
+}
+
+void BIOS_1()
+{
+    char biosLine[16];
+    Stop_Inner();
+    LCD_P8x16Str(0, 0, "    BIOS  1    ");
+    LCD_P8x16Str(0, 1, "---------------");
+    sprintf(biosLine, "MaxSpeed = %d", maxSpeed);
+    LCD_P8x16Str(0, 2, biosLine);
+    sprintf(biosLine, "K1 = %0.2f  ", ki);
+    LCD_P8x16Str(0, 3, biosLine);
+}
+
+// void P0_EXTI_Activated() interrupt P0INT_VECTOR
+// {
+//     GPIO_EXTI_Flag_Read(GPIO_P0);
+//     if (Port_Exti_Flag[0]) {
+//         GPIO_EXTI_Flag_Clear(GPIO_P0);
+//         if (Port_Exti_Flag[0] & Port_Pin_7) {
+//             if (biosKey % 3 == 1)
+//                 maxSpeed += 50;
+//             else if (biosKey % 3 == 2)
+//                 minSpeed += 50;
+//         } else if (Port_Exti_Flag[0] & Port_Pin_6) {
+//             if (biosKey % 3 == 1)
+//                 maxSpeed -= 50;
+//             else if (biosKey % 3 == 2)
+//                 minSpeed -= 50;
+//         }
+//     }
+// }
+
+// void P4_EXTI_Activated() interrupt P4INT_VECTOR
+// {
+//     GPIO_EXTI_Flag_Read(GPIO_P4);
+//     if (Port_Exti_Flag[4]) {
+//         GPIO_EXTI_Flag_Clear(GPIO_P4);
+//         if (Port_Exti_Flag[4] & Port_Pin_2) {
+//             if (biosKey % 3 == 1)
+//                 ki += 0.01;
+//             else if (biosKey % 3 == 2)
+//                 maxAbsI++;
+//         } else if (Port_Exti_Flag[4] & Port_Pin_6) {
+//             if (biosKey % 3 == 1)
+//                 ki -= 0.01;
+//             else if (biosKey % 3 == 2)
+//                 maxAbsI--;
+//         } else if (Port_Exti_Flag[4] & Port_Pin_5) {
+//             if (biosKey % 3 == 1)
+//                 kp += 0.1;
+//             else if (biosKey % 3 == 2)
+//                 kd += 0.05;
+//         } else if (Port_Exti_Flag[4] & Port_Pin_1) {
+//             if (biosKey % 3 == 1)
+//                 kp -= 0.1;
+//             else if (biosKey % 3 == 2)
+//                 kd -= 0.05;
+//         }
+//     }
+// }

@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  common                                                             15/11/25  16:51:32  PAGE 1   
+C251 COMPILER V5.60.0,  common                                                             16/11/25  00:35:25  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE common
@@ -66,7 +66,7 @@ stmt  level    source
    51   2            IRCBAND = 0x02; CLKDIV = 0x00; break;
    52   2          case 35000000://35MHz
    53   2            CLKDIV = 0x04; IRTRIM = T35M_ADDR; VRTRIM = VRT44M_ADDR;
-C251 COMPILER V5.60.0,  common                                                             15/11/25  16:51:32  PAGE 2   
+C251 COMPILER V5.60.0,  common                                                             16/11/25  00:35:25  PAGE 2   
 
    54   2            IRCBAND = 0x03; CLKDIV = 0x00; break;
    55   2          default://д╛хо35MHz
@@ -134,7 +134,7 @@ stmt  level    source
   113   1        P5M0 = 0x00;P5M1 = 0x00;// P5
   114   1        P6M0 = 0x00;P6M1 = 0x00;// P6
   115   1        P7M0 = 0x00;P7M1 = 0x00;// P7
-C251 COMPILER V5.60.0,  common                                                             15/11/25  16:51:32  PAGE 3   
+C251 COMPILER V5.60.0,  common                                                             16/11/25  00:35:25  PAGE 3   
 
   116   1        
   117   1        ADCCFG = 0;
@@ -202,7 +202,7 @@ stmt  level    source
   171          void EnableGlobalIRQ(void)
   172          {
   173   1        EA = 1;
-C251 COMPILER V5.60.0,  common                                                             15/11/25  16:51:32  PAGE 4   
+C251 COMPILER V5.60.0,  common                                                             16/11/25  00:35:25  PAGE 4   
 
   174   1      }
   175           /*******************************************************************************************************
