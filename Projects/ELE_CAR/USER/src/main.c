@@ -2,14 +2,13 @@
 #include <MATH.H>
 
 // ========================= 参数区 =========================
-float    kp             = 0.5;          // PID比例系数
-float    ki             = 0.0035;        // PID积分系数
-float    kd             = 0.4;         // PID微分系数
-float    maxAbsI        = 100;            // 最大积分量，防止积分饱和
-uint8_t  timerTimes     = 5;            // 计时器触发次数
-uint8_t  timerMs        = 10;           // 计时器触发时间(ms)
-uint16_t maxSpeed       = 1900;         // 电机最大速度
-uint16_t minSpeed       = 1200;         // 电机最小速度
+float    kp             = 1.5;          // PID比例系数
+float    ki             = 0.04;         // PID积分系数
+float    kd             = 0.5;          // PID微分系数
+float    maxAbsI        = 5;           // 最大积分量，防止积分饱和
+uint8_t  timerMs        = 5;            // 计时器触发时间(ms)
+uint16_t maxSpeed       = 1400;         // 电机最大速度
+uint16_t minSpeed       = 1400;         // 电机最小速度
 uint16_t midDutyOfServo = 730;          // 舵机中位PWM值
 uint16_t maxChangeDuty  = 130;          // 舵机最大变化PWM值
 uint8_t  adcPin[4]      = {0, 1, 6, 7}; // ADC引脚映射
@@ -66,7 +65,7 @@ void  Get_ADC();                                                                
 float Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin);                       // 归一化处理
 float PID_Calculate(float error, float lastError, float kp, float ki, float kd, float maxAbsI);  // PID计算
 void  Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty); // 舵机控制
-void  Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float lastError);             // 电机控制
+void  Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError);                              // 电机控制
 void  Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *adcRaw);          // 显示误差
 void  Stop_Inner();                                                                              // 停止控制
 void  BIOS(uint8_t biosKey);                                                                     // BIOS系统
@@ -77,13 +76,15 @@ void main()
     All_Init();      // 初始化所有外设
     ADC_Norm_Fast(); // 快速ADC校准
 
+    PIT_Timer_Ms(TIM0, timerMs); // 定时器初始化
+
     while (1) {
         enter = 0;
         // BIOS系统处理
-        if (biosKey % 4)
+        if (biosKey % 5 == 2 || biosKey % 5 == 3 || biosKey % 5 == 4)
             LCD_CLS();
-        while (biosKey % 4) {
-            BIOS(biosKey % 4);
+        while (biosKey % 5 == 2 || biosKey % 5 == 3 || biosKey % 5 == 4) {
+            BIOS(biosKey % 5 - 1);
             enter = 1;
         }
         if (enter) {
@@ -102,7 +103,7 @@ void main()
                adcRaw[1] < 20 &&
                adcRaw[2] < 20 &&
                adcRaw[3] < 20) {
-            Go(0, 0, 0, 0); // 停止电机
+            Go(0, 0, 0); // 停止电机
             Get_ADC();
         };
 
@@ -113,28 +114,12 @@ void main()
 
         // 显示误差信息
         Show_Error_On_Sceen(currentError, pidOut, adcRaw);
-        // 舵机控制
-        Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty);
         // 电机控制
-        Go(minSpeed, maxSpeed, currentError, lastError);
+        Go(minSpeed, maxSpeed, currentError);
         // 更新上次误差
         lastError = currentError;
-        Ms_Delay(5); // 延时10ms
     }
 }
-
-// ========================= 中断服务函数 =========================
-// 定时器中断（注释掉）
-/*
-void PIT0_Activated() interrupt TMR0_VECTOR
-{
-    times++;
-    if (times >= (timerTimes - 1)) {
-        Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty);
-        times = 0;
-    }
-}
-*/
 
 // ========================= 函数实现 =========================
 
@@ -272,7 +257,6 @@ void ADC_Norm_Slow(uint16_t *adcMax, uint16_t *adcMin)
             }
         }
         adcMin[k] = (getADC[4] + getADC[5]) / 2;
-
         LCD_CLS();
         sprintf(getADCLine, "ADC %d MIN=%d", k, adcMin[k]);
         LCD_P8x16Str(0, 3, getADCLine);
@@ -365,26 +349,23 @@ float Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin)
         sprintf(adcNormLine[i], "%.2f", adcAfterNorm[i]);
     }
 
-    // 显示警告信息
-    if (warningOfADC[i] == 1)
-        LCD_P6x8Str(xOfWarning[i], 0, "!");
-    else if (warningOfADC[i] == 1)
-        LCD_P6x8Str(xOfWarning[i], 1, "!");
-
     // 显示归一化后的值
-    sprintf(adcNormLine[0], "%s %s   %s %s", adcNormLine[0], adcNormLine[1], adcNormLine[2], adcNormLine[3]);
-    LCD_P6x8Str(0, 1, adcNormLine[0]);
+    if (biosKey % 5 == 1) {
+        sprintf(adcNormLine[0], "%s %s   %s %s", adcNormLine[0], adcNormLine[1], adcNormLine[2], adcNormLine[3]);
+        LCD_P6x8Str(0, 1, adcNormLine[0]);
+    }
 
     // 计算左右两侧传感器的平均值
-    adcL = (adcAfterNorm[0]*0.5 + adcAfterNorm[1]*1.5) / 2; // 左侧平均值
-    adcR = (adcAfterNorm[2]*0.5 + adcAfterNorm[3]*1.5) / 2; // 右侧平均值
+    adcL = (adcAfterNorm[0] * 0.7 + adcAfterNorm[1] * 1.3) / 2; // 左侧平均值
+    adcR = (adcAfterNorm[2] * 0.7 + adcAfterNorm[3] * 1.3) / 2; // 右侧平均值
 
     // 显示左右侧数值
-    sprintf(adcNormLine[0], "%.3f->", adcL);
-    LCD_P6x8Str(0, 2, adcNormLine[0]);
-    sprintf(adcNormLine[0], "<-%.3f", adcR);
-    LCD_P6x8Str(84, 2, adcNormLine[0]);
-
+    if (biosKey % 5 == 1) {
+        sprintf(adcNormLine[0], "%.3f->", adcL);
+        LCD_P6x8Str(0, 2, adcNormLine[0]);
+        sprintf(adcNormLine[0], "<-%.3f", adcR);
+        LCD_P6x8Str(84, 2, adcNormLine[0]);
+    }
     // 计算并返回归一化误差：(左侧-右侧)/(左侧+右侧)
     return (adcL - adcR) / (adcL + adcR + 0.001); // +0.001防止除零
 }
@@ -418,13 +399,14 @@ float PID_Calculate(float error, float lastError, float kp, float ki, float kd, 
     lastError = error;
 
     // 显示PID参数和计算过程
-    sprintf(pidLine, "PID: %0.1f  %0.3f  %0.2f", kp, ki, kd);
-    LCD_P6x8Str(0, 3, pidLine);
-    sprintf(pidLine, "%+0.2f%+0.2f%+0.2f=%+0.2f", kp * error, ki * sumOfError, derivative, output);
-    LCD_P6x8Str(0, 4, pidLine);
-    sprintf(pidLine, "%04d  < SPEED <  %04d", minSpeed, maxSpeed);
-    LCD_P6x8Str(0, 5, pidLine);
-
+    if (biosKey % 5 == 1) {
+        sprintf(pidLine, "PID: %0.1f  %0.3f  %0.2f", kp, ki, kd);
+        LCD_P6x8Str(0, 3, pidLine);
+        sprintf(pidLine, "%+0.2f%+0.2f%+0.2f=%+0.2f", kp * error, ki * sumOfError, derivative, output);
+        LCD_P6x8Str(0, 4, pidLine);
+        sprintf(pidLine, "%04d  < SPEED <  %04d", minSpeed, maxSpeed);
+        LCD_P6x8Str(0, 5, pidLine);
+    }
     return output;
 }
 
@@ -442,10 +424,10 @@ void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t 
 }
 
 /// @brief 电机控制函数
-void Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError, float lastError)
+void Go(uint16_t minSpeed, uint16_t maxSpeed, float currentError)
 {
     // 根据误差变化率计算速度：基础速度 + 变化率×系数
-    int speed = (int)((maxSpeed - minSpeed) * abs(currentError - lastError) / 2) + minSpeed;
+    int speed = (int)((maxSpeed - minSpeed) * (1 - fabs(currentError))) + minSpeed;
 
     // 速度限幅
     if (speed > maxSpeed)
@@ -463,27 +445,28 @@ void Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *ad
 {
     char errorLine[22];
 
-    // 显示ADC原始值
-    sprintf(errorLine, "%04d %04d   %04d %04d", adcRaw[0], adcRaw[1], adcRaw[2], adcRaw[3]);
-    LCD_P6x8Str(0, 0, errorLine);
+    if (biosKey % 5 == 1) {
+        // 显示ADC原始值
+        sprintf(errorLine, "%04d %04d   %04d %04d", adcRaw[0], adcRaw[1], adcRaw[2], adcRaw[3]);
+        LCD_P6x8Str(0, 0, errorLine);
 
-    // 显示PID前后的误差值
-    if (errorBeforePID >= 0)
-        sprintf(errorLine, "+%.4f", errorBeforePID);
-    else
-        sprintf(errorLine, "%.4f", errorBeforePID);
-    LCD_P6x8Str(42, 2, errorLine);
+        // 显示PID前后的误差值
+        if (errorBeforePID >= 0)
+            sprintf(errorLine, "+%.4f", errorBeforePID);
+        else
+            sprintf(errorLine, "%.4f", errorBeforePID);
+        LCD_P6x8Str(42, 2, errorLine);
 
-    if (errorAfterPID >= 0)
-        sprintf(errorLine, "%s  -->  +%.4f", errorLine, errorAfterPID);
-    else
-        sprintf(errorLine, "%s  -->  %.4f", errorLine, errorAfterPID);
+        if (errorAfterPID >= 0)
+            sprintf(errorLine, "%s  -->  +%.4f", errorLine, errorAfterPID);
+        else
+            sprintf(errorLine, "%s  -->  %.4f", errorLine, errorAfterPID);
+    }
 }
 
 /// @brief 停止控制（舵机回中，电机停止）
 void Stop_Inner()
 {
-    PWM_SET_Frequency(SERVO, 50, midDutyOfServo); // 舵机回中
     PWM_SET_Duty(MOTOR_L, 10000);                 // 电机停止
     PWM_SET_Duty(MOTOR_R, 10000);
 }
@@ -526,6 +509,11 @@ void BIOS(uint8_t page)
 
 // ========================= 中断服务函数 =========================
 
+void PIT0_Activated() interrupt TMR0_VECTOR
+{
+    Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty);
+}
+
 /// @brief P0口外部中断服务函数（按键中断）
 void P0_EXTI_Activated() interrupt P0INT_VECTOR
 {
@@ -549,32 +537,32 @@ void P4_EXTI_Activated() interrupt P4INT_VECTOR
 
         // 根据当前BIOS页面调整不同参数
         if (Port_Exti_Flag[4] & Port_Pin_2) { // 上键：增加参数
-            if (biosKey % 4 == 1)
+            if (biosKey % 5 == 2)
                 maxSpeed += 50;
-            else if (biosKey % 4 == 2)
+            else if (biosKey % 5 == 3)
                 minSpeed += 50;
-            else if (biosKey % 4 == 3)
+            else if (biosKey % 5 == 4)
                 maxAbsI += 0.5;
         } else if (Port_Exti_Flag[4] & Port_Pin_6) { // 下键：减小参数
-            if (biosKey % 4 == 1)
+            if (biosKey % 5 == 2)
                 maxSpeed -= 50;
-            else if (biosKey % 4 == 2)
+            else if (biosKey % 5 == 3)
                 minSpeed -= 50;
-            else if (biosKey % 4 == 3)
+            else if (biosKey % 5 == 4)
                 maxAbsI -= 0.5;
         } else if (Port_Exti_Flag[4] & Port_Pin_1) { // 右键：增加PID参数
-            if (biosKey % 4 == 1)
+            if (biosKey % 5 == 2)
                 kp += 0.1;
-            else if (biosKey % 4 == 2)
-                ki += 0.0001;
-            else if (biosKey % 4 == 3)
+            else if (biosKey % 5 == 3)
+                ki += 0.001;
+            else if (biosKey % 5 == 4)
                 kd += 0.05;
         } else if (Port_Exti_Flag[4] & Port_Pin_5) { // 左键：减小PID参数
-            if (biosKey % 4 == 1)
+            if (biosKey % 5 == 2)
                 kp -= 0.1;
-            else if (biosKey % 4 == 2)
-                ki -= 0.0001;
-            else if (biosKey % 4 == 3)
+            else if (biosKey % 5 == 3)
+                ki -= 0.001;
+            else if (biosKey % 5 == 4)
                 kd -= 0.05;
         }
     }
