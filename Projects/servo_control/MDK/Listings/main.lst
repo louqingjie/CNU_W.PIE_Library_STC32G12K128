@@ -1,0 +1,71 @@
+C251 COMPILER V5.60.0,  main                                                               21/11/25  19:12:24  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE main
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\USER\src\main.c XSMALL BROWSE INCDIR(..\..\..\Librari
+                    -es\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG PRINT(.\Listings\main.lst
+                    -) TABS(2) OBJECT(.\Objects\main.obj) 
+
+stmt  level    source
+
+    1          #include "main.h"
+    2          #define SERVO PWMB_CH1_P74
+    3          float i = 0;
+    4          void  Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty)
+    5          {
+    6   1          // 误差限幅
+    7   1          if (errorInner > 1)
+    8   1              errorInner = 1;
+    9   1          else if (errorInner < -1)
+   10   1              errorInner = -1;
+   11   1      
+   12   1          // 根据误差计算舵机PWM值：中位值 ± 最大变化量×误差
+   13   1          PWM_SET_Duty(SERVO, midDutyOfServo + (int)maxChangeDuty * errorInner);
+   14   1      }
+   15          void main()
+   16          {
+   17   1          Board_Init();
+   18   1          PWM_Init(PWMB_CH1_P74, 50, 730);
+   19   1          while (1) {
+   20   2              // PWM_SET_Duty(PWMB_CH1_P74, 830);
+   21   2              // Ms_Delay(1000);
+   22   2              // PWM_SET_Duty(PWMB_CH1_P74, 630);
+   23   2              // Ms_Delay(1000);
+   24   2              for (i = 0; i < 1; i += 0.01) {
+   25   3                  Servo_Control_By_Error(i, 730, 130);
+   26   3                  Ms_Delay(10);
+   27   3              }
+   28   2              for (i = 1; i > -1; i -= 0.01) {
+   29   3                  Servo_Control_By_Error(i, 730, 130);
+   30   3                  Ms_Delay(10);}
+   31   2                  for (i = -1; i < 0; i += 0.01) {
+   32   3                      Servo_Control_By_Error(i, 730, 130);
+   33   3                      Ms_Delay(10);
+   34   3                  }
+   35   2              }
+   36   1          }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       286     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =         4     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =         8     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

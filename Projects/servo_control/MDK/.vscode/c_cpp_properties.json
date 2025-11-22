@@ -1,0 +1,45 @@
+{
+    "configurations": [
+        {
+            "name": "Project",
+            "cStandard": "c89",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "${default}",
+            "includePath": [
+                "D:/Program Files/Keil_v5/C251/INC",
+                "D:/Program Files/Keil_v5/C251/INC/STC",
+                "d:/Desktop/PIE/CNU_W.PIE_Library_STC32G12K128/Libraries/boards/inc",
+                "d:/Desktop/PIE/CNU_W.PIE_Library_STC32G12K128/Libraries/startup/inc",
+                "d:/Desktop/PIE/CNU_W.PIE_Library_STC32G12K128/Projects/servo_control/USER/inc",
+                "d:/Desktop/PIE/CNU_W.PIE_Library_STC32G12K128/Libraries/deivers/inc"
+            ],
+            "defines": [
+                "__C251__",
+                "__VSCODE_C251__",
+                "reentrant=",
+                "compact=",
+                "small=",
+                "large=",
+                "data=",
+                "idata=",
+                "pdata=",
+                "bdata=",
+                "edata=",
+                "xdata=",
+                "code=",
+                "bit=char",
+                "sbit=char",
+                "sfr=char",
+                "sfr16=int",
+                "sfr32=int",
+                "interrupt=",
+                "using=",
+                "far=",
+                "_at_=",
+                "_priority_=",
+                "_task_="
+            ]
+        }
+    ],
+    "version": 4
+}
