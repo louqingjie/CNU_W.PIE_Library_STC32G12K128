@@ -1,14 +1,7 @@
 Build target 'Project'
 compiling main.c...
-..\USER\src\main.c(271): warning C47: 'midDutyOfServo': unreferenced parameter
-..\USER\src\main.c(271): warning C47: 'maxChangeDuty': unreferenced parameter
 linking...
-*** WARNING L15: MULTIPLE CALL TO FUNCTION
-    NAME:    PWM_SET_Frequency/CNU_PIE_PWM
-    CALLER1: PIT0_Activated/main
-    CALLER2: ?C_C51STARTUP?3
-
-Program Size: data=8.1 edata+hdata=1237 xdata=0 const=3818 code=24057
+Program Size: data=8.1 edata+hdata=1237 xdata=0 const=3818 code=23747
 creating hex file from ".\Objects\Project_Template"...
-".\Objects\Project_Template" - 0 Error(s), 3 Warning(s).
-Build Time Elapsed:  00:00:00
+".\Objects\Project_Template" - 0 Error(s), 0 Warning(s).
+Build Time Elapsed:  00:00:01

@@ -71,6 +71,7 @@ void main()
     All_Init(midDutyOfServo, adcPin);      // 初始化所有外设
     ADC_Norm_Fast(adcMax, adcMin, adcPin); // 快速ADC校准
     PIT_Timer_Ms(TIM0, timerMs);           // 定时器初始化
+    // PIT_Timer_Ms(TIM2,timerMs);
 
     while (1) {
         // ========================= BIOS系统处理 =========================
@@ -92,10 +93,10 @@ void main()
         }
         // ========================= 运行控制处理 =========================
         // 检测是否在赛道上，如果所有传感器都检测不到黑线则停止
-        while (adcRaw[0] <= adcMin[0] &&
-               adcRaw[1] <= adcMin[1] &&
-               adcRaw[2] <= adcMin[2] &&
-               adcRaw[3] <= adcMin[3]) {
+        while ((adcRaw[0] <= adcMin[0] || adcRaw[0] <= stopADC) &&
+               (adcRaw[1] <= adcMin[1] || adcRaw[1] <= stopADC) &&
+               (adcRaw[2] <= adcMin[2] || adcRaw[2] <= stopADC) &&
+               (adcRaw[3] <= adcMin[3] || adcRaw[3] <= stopADC)) {
             Go(0, 0, 0); // 停止电机
         };
         // 显示误差信息
@@ -160,7 +161,7 @@ void All_Init(uint16_t midDutyOfServo, uint8_t *adcPin)
     GPIO_EXTI_Set_Priority(GPIO_P0, Second_priority);
     GPIO_EXTI_Set_Priority(GPIO_P4, Third_priority);
 
-    PWM_Init(BUZZER, 2000, 10000);
+    // PWM_Init(BUZZER, 2000, 10000);
 
     LCD_Init(); // LCD初始化
 }
@@ -170,25 +171,12 @@ void ADC_Norm_Fast(uint16_t *adcMax, uint16_t *adcMin, uint8_t *adcPin)
 {
     char     LimLine[22];
     uint16_t i, j, getADC[4];
+    // uint16_t note[8] = {1046, 1175, 1318, 1397, 1568, 1760, 1976, 2093};
     LCD_P8x16Str(0, 3, "NORM...");
 
     // 连续采样30000次，动态获取最大值和最小值
-    for (i = 0; i < 35000; i++) {
-        if (i < 5000) {
-            PWM_SET_Frequency(BUZZER, 1046, 5000);
-        } else if (i < 10000) {
-            PWM_SET_Frequency(BUZZER, 1175, 5000);
-        } else if (i < 15000) {
-            PWM_SET_Frequency(BUZZER, 1318, 5000);
-        } else if (i < 20000) {
-            PWM_SET_Frequency(BUZZER, 1397, 5000);
-        } else if (i < 25000) {
-            PWM_SET_Frequency(BUZZER, 1568, 5000);
-        } else if (i < 30000) {
-            PWM_SET_Frequency(BUZZER, 1760, 5000);
-        } else {
-            PWM_SET_Frequency(BUZZER, 1976, 5000);
-        }
+    for (i = 0; i < 32000; i++) {
+        // PWM_SET_Frequency(BUZZER, note[i / 4000], 5000);
         for (j = 0; j < 4; j++) {
             getADC[j] = ADC_Read_Once(ADC[adcPin[j]], ADC_12BIT);
             if (adcMax[j] < getADC[j])
@@ -204,20 +192,12 @@ void ADC_Norm_Fast(uint16_t *adcMax, uint16_t *adcMin, uint8_t *adcPin)
     LCD_P6x8Str(0, 6, LimLine);
     sprintf(LimLine, "%04d %04d   %04d %04d", adcMin[0], adcMin[1], adcMin[2], adcMin[3]);
     LCD_P6x8Str(0, 7, LimLine);
-    PWM_SET_Frequency(BUZZER, 1976, 5000);
-    Ms_Delay(100);
-    PWM_SET_Frequency(BUZZER, 1760, 5000);
-    Ms_Delay(100);
-    PWM_SET_Frequency(BUZZER, 1568, 5000);
-    Ms_Delay(100);
-    PWM_SET_Frequency(BUZZER, 1397, 5000);
-    Ms_Delay(100);
-    PWM_SET_Frequency(BUZZER, 1318, 5000);
-    Ms_Delay(100);
-    PWM_SET_Frequency(BUZZER, 1175, 5000);
-    Ms_Delay(100);
-    PWM_SET_Frequency(BUZZER, 1046, 5000);
-    Ms_Delay(100);
+    // PWM_SET_Frequency(BUZZER, 2093, 10000);
+    Ms_Delay(1000);
+    // for (i = 0; i < 8; i++) {
+    //     PWM_SET_Frequency(BUZZER, note[7-i], 5000);
+    //     Ms_Delay(100);
+    // }
     PWM_SET_Duty(BUZZER, 10000);
     LCD_P8x16Str(0, 3, "       ");
 }
@@ -275,7 +255,7 @@ void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t 
     else if (errorInner < -1)
         errorInner = -1;
     // 根据误差计算舵机PWM值：中位值 ± 最大变化量×误差
-    PWM_SET_Duty(SERVO, midDutyOfServo + (int)maxChangeDuty * errorInner);
+    PWM_SET_Frequency(SERVO,50, midDutyOfServo + (int)maxChangeDuty * errorInner);
 }
 
 /// @brief 电机控制函数
@@ -372,6 +352,12 @@ void PIT0_Activated() interrupt TMR0_VECTOR
     lastError = error;                                             // 更新上次误差
     Servo_Control_By_Error(pidOut, midDutyOfServo, maxChangeDuty); // 舵机控制
 }
+
+// void PIT2_Activated() interrupt TMR2_VECTOR
+// {
+//     PIT_Timer_Clear(TIM2);
+//     Servo_Control_By_Error(pidOut,midDutyOfServo,maxChangeDuty);
+// }
 
 /// @brief P0口外部中断服务函数（按键中断）
 void P0_EXTI_Activated() interrupt P0INT_VECTOR
