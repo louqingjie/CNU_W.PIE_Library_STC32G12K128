@@ -1,15 +1,18 @@
 #include "main.h"
+#include "STC32G_EEPROM.h"
 #include <MATH.H>
 
 // ========================= 参数区 =========================
-float    kp             = 1.2;          // PID比例系数
-float    kd             = 0.9;          // PID微分系数
-float    kA             = 0.8;          // 误差计算系数A
-float    kB             = 0.7;          // 误差计算系数B
+float    kp       = 1.2;  // PID比例系数
+float    kd       = 0.9;  // PID微分系数
+float    kA       = 0.8;  // 误差计算系数A
+float    kB       = 0.7;  // 误差计算系数B
+uint16_t maxSpeed = 1800; // 电机最大速度
+uint16_t minSpeed = 1250; // 电机最小速度
+
+//========================= 内参区 ==========================
 uint8_t  stopADC        = 20;           // 停车ADC阈值
 uint8_t  timerMs        = 20;           // 计时器触发时间(ms)
-uint16_t maxSpeed       = 1800;         // 电机最大速度
-uint16_t minSpeed       = 1250;         // 电机最小速度
 uint16_t midDutyOfServo = 730;          // 舵机中位PWM值
 uint16_t maxChangeDuty  = 130;          // 舵机最大变化PWM值
 uint8_t  adcPin[4]      = {0, 1, 6, 7}; // ADC引脚映射
@@ -51,28 +54,36 @@ float    error;                                // 当前误差
 float    pidOut;                               // PID输出
 float    lastError;                            // 上次误差
 float    adcAfterNorm[4];                      // 归一化后的ADC值
-char     limLine[22];                          // 显示缓冲区
-
-void  All_Init(uint16_t midDutyOfServo, uint8_t *adcPin);
-void  ADC_Norm_Fast(uint16_t *adcMax, uint16_t *adcMin, uint8_t *adcPin);
-void  Get_ADC(uint16_t *adcRaw, uint8_t *adcPin);
-void  Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin, float *adcAfterNorm);
-float ADC_To_Error(float *adcAfterNorm, float kA, float kB);
-float PD_Calculate(float error, float lastError, float kp, float kd);
-void  Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty);
-void  Go(uint16_t minSpeed, uint16_t maxSpeed, float error);
-void  Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *adcRaw);
-void  Stop_Inner();
-void  BIOS(uint16_t biosKey, uint16_t minSpeed, uint16_t maxSpeed, float kp, float kd, float kA, float kB);
+uint16_t i, j, k;
+uint16_t temp, getADC[9];
+float    den;
+float    num;
+float    output, derivative;
+int      speed;
+uint8_t  page;
+char     biosLine[16], errorLine[22], limLine[22];
+void     All_Init(uint16_t midDutyOfServo, uint8_t *adcPin);
+void     ADC_Norm_Fast(uint16_t *adcMax, uint16_t *adcMin, uint8_t *adcPin);
+void     Get_ADC(uint16_t *adcRaw, uint8_t *adcPin);
+void     Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin, float *adcAfterNorm);
+float    ADC_To_Error(float *adcAfterNorm, float kA, float kB);
+float    PD_Calculate(float error, float lastError, float kp, float kd);
+void     Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty);
+void     Go(uint16_t minSpeed, uint16_t maxSpeed, float error);
+void     Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *adcRaw);
+void     Stop_Inner();
+void     BIOS(uint16_t biosKey, uint16_t minSpeed, uint16_t maxSpeed, float kp, float kd, float kA, float kB);
+void     EXTI_Init(uint8_t timerMs);
+void     EEPROM_Save(float *kp, float *kd, float *kA, float *kB, uint16_t *minSpeed, uint16_t *maxSpeed);
+void     EEPROM_Load(float *kp, float *kd, float *kA, float *kB, uint16_t *minSpeed, uint16_t *maxSpeed);
 
 // ========================= 主函数 =========================
 void main()
 {
     All_Init(midDutyOfServo, adcPin);      // 初始化所有外设
-    ADC_Norm_Fast(adcMax, adcMin, adcPin); // 快速ADC校准
-    PIT_Timer_Ms(TIM0, timerMs);           // 定时器初始化
-    // PIT_Timer_Ms(TIM2,timerMs);
-
+    // ADC_Norm_Fast(adcMax, adcMin, adcPin); // 快速ADC校准
+    EXTI_Init(timerMs);
+    EEPROM_Load(&kp, &kd, &kA, &kB, &minSpeed, &maxSpeed);
     while (1) {
         // ========================= BIOS系统处理 =========================
         enter = 0;
@@ -90,15 +101,16 @@ void main()
             LCD_P6x8Str(0, 6, limLine);
             sprintf(limLine, "%04d %04d   %04d %04d", adcMin[0], adcMin[1], adcMin[2], adcMin[3]);
             LCD_P6x8Str(0, 7, limLine);
+            EEPROM_Save(&kp, &kd, &kA, &kB, &minSpeed, &maxSpeed);
         }
         // ========================= 运行控制处理 =========================
         // 检测是否在赛道上，如果所有传感器都检测不到黑线则停止
-        while ((adcRaw[0] <= adcMin[0] || adcRaw[0] <= stopADC) &&
-               (adcRaw[1] <= adcMin[1] || adcRaw[1] <= stopADC) &&
-               (adcRaw[2] <= adcMin[2] || adcRaw[2] <= stopADC) &&
-               (adcRaw[3] <= adcMin[3] || adcRaw[3] <= stopADC)) {
-            Go(0, 0, 0); // 停止电机
-        };
+//        while ((adcRaw[0] <= adcMin[0] || adcRaw[0] <= stopADC) &&
+//               (adcRaw[1] <= adcMin[1] || adcRaw[1] <= stopADC) &&
+//               (adcRaw[2] <= adcMin[2] || adcRaw[2] <= stopADC) &&
+//               (adcRaw[3] <= adcMin[3] || adcRaw[3] <= stopADC)) {
+//            Go(0, 0, 0); // 停止电机
+//        };
         // 显示误差信息
         Show_Error_On_Sceen(error, pidOut, adcRaw);
         // 电机控制
@@ -111,7 +123,7 @@ void main()
 /// @brief 全局初始化函数
 void All_Init(uint16_t midDutyOfServo, uint8_t *adcPin)
 {
-    uint8_t i;
+
     Board_Init(); // 开发板初始化
 
     // ADC初始化
@@ -137,13 +149,13 @@ void All_Init(uint16_t midDutyOfServo, uint8_t *adcPin)
     GPIO_Init(KEY(0), GPIO_PullUp);
     GPIO_Init(KEY(1), GPIO_PullUp);
 
-    // 方向键初始化
-    GPIO_Init(DPAD_UP, GPIO_PullUp);
-    GPIO_Init(DPAD_DOWN, GPIO_PullUp);
-    GPIO_Init(DPAD_LEFT, GPIO_PullUp);
-    GPIO_Init(DPAD_RIGHT, GPIO_PullUp);
+    // PWM_Init(BUZZER, 2000, 10000);
 
-    // 外部中断初始化
+    LCD_Init(); // LCD初始化
+}
+
+void EXTI_Init(uint8_t timerMs)
+{
     GPIO_EXTI_Init(KEY(0), FALLING_EDGE);
     GPIO_EXTI_Open(KEY(0));
     GPIO_EXTI_Init(KEY(1), FALLING_EDGE);
@@ -157,20 +169,25 @@ void All_Init(uint16_t midDutyOfServo, uint8_t *adcPin)
     GPIO_EXTI_Init(DPAD_RIGHT, FALLING_EDGE);
     GPIO_EXTI_Open(DPAD_RIGHT);
 
-    // 设置中断优先级
+    GPIO_EXTI_Init(GPIO_P0, GPIO_Pin_7, FALLING_EDGE);
+    GPIO_EXTI_Open(GPIO_P0, GPIO_Pin_7);
+    GPIO_EXTI_Init(GPIO_P5, GPIO_Pin_2, FALLING_EDGE);
+    GPIO_EXTI_Open(GPIO_P5, GPIO_Pin_2);
+    PIT_Timer_Ms(TIM0, timerMs); // 定时器初始化
+                                 // PIT_Timer_Ms(TIM2,timerMs);
     GPIO_EXTI_Set_Priority(GPIO_P0, Second_priority);
     GPIO_EXTI_Set_Priority(GPIO_P4, Third_priority);
-
-    // PWM_Init(BUZZER, 2000, 10000);
-
-    LCD_Init(); // LCD初始化
 }
 
 /// @brief 快速ADC校准（动态范围校准）
 void ADC_Norm_Fast(uint16_t *adcMax, uint16_t *adcMin, uint8_t *adcPin)
 {
-    char     LimLine[22];
-    uint16_t i, j, getADC[4];
+    // LCD_P8x16Str(0, 3, "NORM?");
+    // while (GPIO_Read_Bit(KEY(0)) == 0 && GPIO_Read_Bit(KEY(1)) == 0)
+    //     ;
+    // if (GPIO_Read_Bit(KEY(1)))
+    //     return;
+
     // uint16_t note[8] = {1046, 1175, 1318, 1397, 1568, 1760, 1976, 2093};
     LCD_P8x16Str(0, 3, "NORM...");
 
@@ -188,10 +205,10 @@ void ADC_Norm_Fast(uint16_t *adcMax, uint16_t *adcMin, uint8_t *adcPin)
 
     LCD_P8x16Str(0, 3, "FINISH!");
     // 显示校准结果
-    sprintf(LimLine, "%04d %04d   %04d %04d", adcMax[0], adcMax[1], adcMax[2], adcMax[3]);
-    LCD_P6x8Str(0, 6, LimLine);
-    sprintf(LimLine, "%04d %04d   %04d %04d", adcMin[0], adcMin[1], adcMin[2], adcMin[3]);
-    LCD_P6x8Str(0, 7, LimLine);
+    sprintf(limLine, "%04d %04d   %04d %04d", adcMax[0], adcMax[1], adcMax[2], adcMax[3]);
+    LCD_P6x8Str(0, 6, limLine);
+    sprintf(limLine, "%04d %04d   %04d %04d", adcMin[0], adcMin[1], adcMin[2], adcMin[3]);
+    LCD_P6x8Str(0, 7, limLine);
     // PWM_SET_Frequency(BUZZER, 2093, 10000);
     Ms_Delay(1000);
     // for (i = 0; i < 8; i++) {
@@ -205,16 +222,33 @@ void ADC_Norm_Fast(uint16_t *adcMax, uint16_t *adcMin, uint8_t *adcPin)
 /// @brief 获取ADC采样值（中值滤波）
 void Get_ADC(uint16_t *adcRaw, uint8_t *adcPin)
 {
-    int i;
-    for (i = 0; i < 4; i++)
-        adcRaw[i] = ADC_Read_Once(ADC[adcPin[i]], ADC_12BIT);
+
+    // 对每个ADC通道进行采样
+    for (k = 0; k < 4; k++) {
+        // 采样9次
+        for (i = 0; i < 9; i++) {
+            getADC[i] = ADC_Read_Once(ADC[adcPin[k]], ADC_12BIT);
+        }
+
+        // 冒泡排序
+        for (i = 1; i <= 9 - 1; i++) {
+            for (j = 0; j < 9 - i; j++) {
+                if (getADC[j] > getADC[j + 1]) {
+                    temp          = getADC[j];
+                    getADC[j]     = getADC[j + 1];
+                    getADC[j + 1] = temp;
+                }
+            }
+        }
+        adcRaw[k] = getADC[4]; // 取中值作为最终结果
+    }
 }
 
 /// @brief ADC数据归一化处理
 /// @return 归一化后的误差值(-1~1)
 void Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin, float *adcAfterNorm)
 {
-    uint8_t i;
+
     // 对每个ADC通道进行归一化处理
     for (i = 0; i < 4; i++) {
         // 边界检查
@@ -229,14 +263,14 @@ void Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin, float *
 
 float ADC_To_Error(float *adcAfterNorm, float kA, float kB)
 {
-    float num = kA * (adcAfterNorm[0] - adcAfterNorm[3]) + kB * (adcAfterNorm[1] - adcAfterNorm[2]);
-    float den = kA * (adcAfterNorm[0] + adcAfterNorm[3]) + kB * fabs(adcAfterNorm[1] - adcAfterNorm[2]);
+    num = kA * (adcAfterNorm[0] - adcAfterNorm[3]) + kB * (adcAfterNorm[1] - adcAfterNorm[2]);
+    den = kA * (adcAfterNorm[0] + adcAfterNorm[3]) + kB * fabs(adcAfterNorm[1] - adcAfterNorm[2]) + 0.00001;
     return (float)num / den;
 }
 
 float PD_Calculate(float error, float lastError, float kp, float kd)
 {
-    float output, derivative;
+
     derivative = kd * (error - lastError);
     output     = kp * error + derivative;
     if (output > 1)
@@ -255,14 +289,14 @@ void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t 
     else if (errorInner < -1)
         errorInner = -1;
     // 根据误差计算舵机PWM值：中位值 ± 最大变化量×误差
-    PWM_SET_Frequency(SERVO,50, midDutyOfServo + (int)maxChangeDuty * errorInner);
+    PWM_SET_Duty(SERVO, midDutyOfServo + (int)maxChangeDuty * errorInner);
 }
 
 /// @brief 电机控制函数
 void Go(uint16_t minSpeed, uint16_t maxSpeed, float error)
 {
     // 根据误差变化率计算速度：基础速度 + 变化率×系数
-    int speed = (int)((maxSpeed - minSpeed) * (1 - fabs(error))) + minSpeed;
+    speed = (int)((maxSpeed - minSpeed) * (1 - fabs(error))) + minSpeed;
 
     // 速度限幅
     if (speed > maxSpeed)
@@ -278,22 +312,23 @@ void Go(uint16_t minSpeed, uint16_t maxSpeed, float error)
 /// @brief 显示误差信息
 void Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *adcRaw)
 {
-    char errorLine[22];
     // 显示ADC原始值
     sprintf(errorLine, "%04d %04d   %04d %04d", adcRaw[0], adcRaw[1], adcRaw[2], adcRaw[3]);
     LCD_P6x8Str(0, 0, errorLine);
-
+    sprintf(errorLine, "%0.2f %0.2f   %0.2f %.2fd", adcAfterNorm[0], adcAfterNorm[1], adcAfterNorm[2], adcAfterNorm[3]);
+    LCD_P6x8Str(0, 1, errorLine);
     // 显示PID前后的误差值
     if (errorBeforePID >= 0)
         sprintf(errorLine, "+%.4f", errorBeforePID);
     else
         sprintf(errorLine, "%.4f", errorBeforePID);
-    LCD_P6x8Str(42, 2, errorLine);
 
     if (errorAfterPID >= 0)
         sprintf(errorLine, "%s  -->  +%.4f", errorLine, errorAfterPID);
     else
         sprintf(errorLine, "%s  -->  %.4f", errorLine, errorAfterPID);
+
+    LCD_P6x8Str(0, 2, errorLine);
 }
 
 /// @brief 停止控制（舵机回中，电机停止）
@@ -306,10 +341,9 @@ void Stop_Inner()
 /// @brief BIOS系统（参数调整界面）
 void BIOS(uint16_t biosKey, uint16_t minSpeed, uint16_t maxSpeed, float kp, float kd, float kA, float kB)
 {
-    uint8_t page = biosKey % 4;
-    char    biosLine[16];
-    Stop_Inner(); // 进入BIOS时停止运动
 
+    Stop_Inner(); // 进入BIOS时停止运动
+    page = biosKey % 4;
     switch (page) {
     case 1: // 页面1：最大速度和Kp调整
         LCD_P8x16Str(0, 0, "     BIOS 1    ");
@@ -340,6 +374,33 @@ void BIOS(uint16_t biosKey, uint16_t minSpeed, uint16_t maxSpeed, float kp, floa
     }
 }
 
+void EEPROM_Save(float *kp, float *kd, float *kA, float *kB, uint16_t *minSpeed, uint16_t *maxSpeed)
+{
+    // 只擦除一个扇区
+    EEPROM_SectorErase(0);
+    
+    // 需要将指针转换为uint8_t*类型
+    EEPROM_write_n(0, (uint8_t *)kp, 4);        // float是4字节
+    EEPROM_write_n(4, (uint8_t *)kd, 4);
+    EEPROM_write_n(8, (uint8_t *)kA, 4);
+    EEPROM_write_n(12, (uint8_t *)kB, 4);
+    EEPROM_write_n(16, (uint8_t *)minSpeed, 2); // uint16_t是2字节
+    EEPROM_write_n(18, (uint8_t *)maxSpeed, 2);
+}
+
+void EEPROM_Load(float *kp, float *kd, float *kA, float *kB, uint16_t *minSpeed, uint16_t *maxSpeed)
+{
+    // 需要将指针转换为uint8_t*类型
+    EEPROM_read_n(0, (uint8_t *)kp, 4);
+    EEPROM_read_n(4, (uint8_t *)kd, 4);
+    EEPROM_read_n(8, (uint8_t *)kA, 4);
+    EEPROM_read_n(12, (uint8_t *)kB, 4);
+    EEPROM_read_n(16, (uint8_t *)minSpeed, 2);
+    EEPROM_read_n(18, (uint8_t *)maxSpeed, 2);
+}
+
+
+
 // ========================= 中断服务函数 =========================
 
 void PIT0_Activated() interrupt TMR0_VECTOR
@@ -368,10 +429,24 @@ void P0_EXTI_Activated() interrupt P0INT_VECTOR
         if (Port_Exti_Flag[0] & Port_Pin_7) {
             biosKey++; // 按键1：切换BIOS页面
         } else if (Port_Exti_Flag[0] & Port_Pin_6) {
-            biosKey = 0; // 按键2：退出BIOS
-        }
+            biosKey = 0;
+        } // 按键2：退出BIOS
+        //  else if (Port_Exti_Flag[0] & Port_Pin_4) {
+        //     encoderNum[0]++;
+        // }
     }
 }
+
+// void P5_EXTI_Activated() interrupt P5INT_VECTOR
+// {
+//     GPIO_EXTI_Flag_Clear(GPIO_P5);
+//     if (Port_Exti_Flag[5]) {
+//         GPIO_EXTI_Flag_Clear(GPIO_P5);
+//         if (Port_Exti_Flag[5] & Port_Pin_2) {
+//             encoderNum[1]++;
+//         }
+//     }
+// }
 
 /// @brief P4口外部中断服务函数（方向键中断）
 void P4_EXTI_Activated() interrupt P4INT_VECTOR

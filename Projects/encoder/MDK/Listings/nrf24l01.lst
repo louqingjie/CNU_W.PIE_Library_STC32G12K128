@@ -1,0 +1,512 @@
+C251 COMPILER V5.60.0,  nrf24l01                                                           23/11/25  20:59:46  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE nrf24l01
+OBJECT MODULE PLACED IN .\Objects\nrf24l01.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\..\..\Libraries\boards\src\nrf24l01.c XSMALL BROWSE I
+                    -NCDIR(..\..\..\Libraries\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG PRI
+                    -NT(.\Listings\nrf24l01.lst) TABS(2) OBJECT(.\Objects\nrf24l01.obj) 
+
+stmt  level    source
+
+    1          #include "nrf24l01.h"
+    2          #include "CNU_PIE_SPI.h"
+    3          #include "string.h"
+    4          #include "remote_control.h"
+    5          #include "CNU_PIE_EXTI.h"
+    6          #include "isr.h"
+    7          #include "main.h"
+    8          
+    9          //NRF24L01+×´Ì¬
+   10          typedef enum
+   11          {
+   12            NOT_INIT = 0,
+   13            TX_MODE,
+   14            RX_MODE,
+   15          } nrf_mode_e;
+   16          
+   17          uint8_t Channal = 0;
+   18          int RecFPS = 0;
+   19          
+   20          #define CHANAL          1                              //ÆµµÀÑ¡Ôñ
+   21          
+   22          uint8_t TX_ADDRESS[5] = {'R', 'C', 'T', 'L', 0 }; //·¢ËÍµØÖ·
+   23          uint8_t RX_ADDRESS[5] = {'R', 'C', 'T', 'L', 0 }; //½ÓÊÕµØÖ·
+   24          
+   25          uint8_t TX_Buff[TX_PACKET_LENTH];  
+   26          uint8_t RX_Buff[RX_PACKET_LENTH];
+   27          
+   28          /******************************** NRF24L01+ ¼Ä´æÆ÷ÃüÁî ºê¶¨Òå***************************************/
+   29          
+   30          // SPI(nRF24L01) commands , NRFµÄSPIÃüÁîºê¶¨Òå£¬Ïê¼ûNRF¹¦ÄÜÊ¹ÓÃÎÄµµ
+   31          #define NRF_READ_REG    0x00    // Define read command to register
+   32          #define NRF_WRITE_REG   0x20    // Define write command to register
+   33          #define RD_RX_PLOAD     0x61    // Define RX payload register address
+   34          #define WR_TX_PLOAD     0xA0    // Define TX payload register address
+   35          #define FLUSH_TX        0xE1    // Define flush TX register command
+   36          #define FLUSH_RX        0xE2    // Define flush RX register command
+   37          #define REUSE_TX_PL     0xE3    // Define reuse TX payload register command
+   38          #define _NOP            0xFF    // Define No Operation, might be used to read status register
+   39          
+   40          //µ¥ÉäÆµ 
+   41          #define CE_ON       0x70
+   42          #define CE_OFF      0x71
+   43          #define FEATURE     0x1D  //  Feature Register address
+   44          
+   45          // SPI(nRF24L01) registers(addresses) £¬NRF24L01 Ïà¹Ø¼Ä´æÆ÷µØÖ·µÄºê¶¨Òå
+   46          #define CONFIG      0x00        // 'Config' register address
+   47          #define EN_AA       0x01        // 'Enable Auto Acknowledgment' register address
+   48          #define EN_RXADDR   0x02        // 'Enabled RX addresses' register address
+   49          #define SETUP_AW    0x03        // 'Setup address width' register address
+   50          #define SETUP_RETR  0x04        // 'Setup Auto. Retrans' register address
+   51          #define RF_CH       0x05        // 'RF channel' register address
+   52          #define RF_SETUP    0x06        // 'RF setup' register address
+   53          #define STATUS      0x07        // 'Status' register address
+   54          #define OBSERVE_TX  0x08        // 'Observe TX' register address
+   55          #define CD          0x09        // 'Carrier Detect' register address
+   56          #define RX_ADDR_P0  0x0A        // 'RX address pipe0' register address
+   57          #define RX_ADDR_P1  0x0B        // 'RX address pipe1' register address
+C251 COMPILER V5.60.0,  nrf24l01                                                           23/11/25  20:59:46  PAGE 2   
+
+   58          #define RX_ADDR_P2  0x0C        // 'RX address pipe2' register address
+   59          #define RX_ADDR_P3  0x0D        // 'RX address pipe3' register address
+   60          #define RX_ADDR_P4  0x0E        // 'RX address pipe4' register address
+   61          #define RX_ADDR_P5  0x0F        // 'RX address pipe5' register address
+   62          #define TX_ADDR     0x10        // 'TX address' register address
+   63          #define RX_PW_P0    0x11        // 'RX payload width, pipe0' register address
+   64          #define RX_PW_P1    0x12        // 'RX payload width, pipe1' register address
+   65          #define RX_PW_P2    0x13        // 'RX payload width, pipe2' register address
+   66          #define RX_PW_P3    0x14        // 'RX payload width, pipe3' register address
+   67          #define RX_PW_P4    0x15        // 'RX payload width, pipe4' register address
+   68          #define RX_PW_P5    0x16        // 'RX payload width, pipe5' register address
+   69          #define FIFO_STATUS 0x17        // 'FIFO Status Register' register address
+   70          
+   71          
+   72          //¼¸¸öÖØÒªµÄ×´Ì¬±ê¼Ç
+   73          #define TX_FULL     0x01        //TX FIFO ¼Ä´æÆ÷Âú±êÖ¾¡£ 1 Îª Âú£¬0Îª ²»Âú
+   74          #define MAX_RT      0x10        //´ïµ½×î´óÖØ·¢´ÎÊýÖÐ¶Ï±êÖ¾Î»
+   75          #define TX_DS       0x20        //·¢ËÍÍê³ÉÖÐ¶Ï±êÖ¾Î»
+   76          #define RX_DR       0x40        //½ÓÊÕµ½Êý¾ÝÖÐ¶Ï±êÖ¾Î»
+   77          
+   78          
+   79          
+   80          //ÄÚ²¿¼Ä´æÆ÷²Ù×÷º¯ÊýÉùÃ÷
+   81          void nrf_writereg(uint8_t reg, uint8_t dat);
+   82          uint8_t nrf_readreg(uint8_t reg);
+   83          
+   84          void nrf_writebuf(uint8_t reg , uint8_t *pBuf, uint16_t len) reentrant;
+   85          void nrf_readbuf (uint8_t reg, uint8_t *pBuf, uint16_t  len) reentrant;
+   86          
+   87          void nrf_rx_mode(void);    //½øÈë½ÓÊÕÄ£Ê½
+   88          void nrf_tx_mode(void);    //½øÈë·¢ËÍÄ£Ê½
+   89          uint8_t nrf_link_check(void);   //¼ì²âNRF24L01+Óëµ¥Æ¬»úÊÇ·ñÍ¨ÐÅÕý³£
+   90          /*!
+   91          *  @brief      NRF24L01+ Ä£Ê½±ê¼Ç
+   92          */
+   93          volatile uint8_t  nrf_mode = NOT_INIT;
+   94          
+   95          // RF2G4³õÊ¼»¯
+   96          //------------------------------------------------------------------------------------------
+   97          uint8_t NRF24L01_Init(void)
+   98          {
+   99   1        uint32_t channal =CHANAL;
+  100   1        
+  101   1        GPIO_Init(RF2G4_CE_Port, RF2G4_CE_Pin, GPIO_OUT_PP);
+  102   1        GPIO_Init(RF2G4_CSN_Port, RF2G4_CSN_Pin, GPIO_OUT_PP);
+  103   1        
+  104   1        GPIO_Init(RF2G4_MISO_Port, RF2G4_MISO_Pin, GPIO_HighZ);
+  105   1        GPIO_PinPullConfig(RF2G4_MISO_Port,RF2G4_MISO_Pin,GPIO_NO_PULL);
+  106   1        
+  107   1        GPIO_Init(RF2G4_IRQ_Port, RF2G4_IRQ_Pin, GPIO_HighZ);
+  108   1        GPIO_EXTI_Init(RF2G4_IRQ_Port,RF2G4_IRQ_Pin,FALLING_EDGE);
+  109   1        GPIO_EXTI_Open(RF2G4_IRQ_Port,RF2G4_IRQ_Pin);
+  110   1        GPIO_EXTI_Set_Priority(RF2G4_IRQ_Port,Highest_priority);
+  111   1        
+  112   1        
+  113   1        SPI_Init(SPI_2, 0 , SPI_MSB , SPI_CPOL_Low , SPI_CPHA_1Edge , SPI_Speed_4 , SPI_Mode_Master , 1);
+  114   1        
+  115   1        Channal = channal;
+  116   1        RX_ADDRESS[4] = Channal;
+  117   1        TX_ADDRESS[4] = Channal;
+  118   1        
+  119   1        //2401¼Ä´æÆ÷ÉèÖÃ
+  120   1        RF2G4_CE_LOW;              
+  121   1        
+  122   1        nrf_writereg(NRF_WRITE_REG + SETUP_AW, ADR_WIDTH - 2);          //ÉèÖÃµØÖ·³¤¶ÈÎª TX_ADR_WIDTH
+  123   1        
+C251 COMPILER V5.60.0,  nrf24l01                                                           23/11/25  20:59:46  PAGE 3   
+
+  124   1        nrf_writereg(NRF_WRITE_REG + RF_CH, CHANAL);                    //ÉèÖÃRFÍ¨µÀÎªCHANAL
+  125   1        
+  126   1        /*            | NRF24L01      | SI24R1        |Ci24R1 
+  127   1        *     1Mbps   |  0x06   0dBm  |  0x07    7dBm | 0x07  11dBm
+  128   1        *     250kbps |  0x26   0dBm  |  0x27    7dBm | 0x27  11dBm
+  129   1        */  
+  130   1        nrf_writereg(NRF_WRITE_REG + RF_SETUP, 0x06);                   //ÉèÖÃTX·¢Éä²ÎÊý
+  131   1      
+  132   1       //nrf_writereg(NRF_WRITE_REG + FEATURE, 0x04);                   //Ê¹ÄÜ¶¯Ì¬¸ºÔØ SI24R1 Ci24R1 
+  133   1        
+  134   1        nrf_writereg(NRF_WRITE_REG + EN_AA, 0x01);                      //Ê¹ÄÜÍ¨µÀ0µÄ×Ô¶¯Ó¦´ð
+  135   1        
+  136   1        nrf_writereg(NRF_WRITE_REG + EN_RXADDR, 0x01);                  //Ê¹ÄÜÍ¨µÀ0µÄ½ÓÊÕµØÖ·
+  137   1        
+  138   1        //RXÄ£Ê½ÅäÖÃ
+  139   1        nrf_writebuf(NRF_WRITE_REG + RX_ADDR_P0, RX_ADDRESS, ADR_WIDTH); //Ð´RX0½ÚµãµØÖ·
+  140   1        
+  141   1        nrf_writereg(NRF_WRITE_REG + RX_PW_P0, RX_PACKET_LENTH);         //Ñ¡ÔñÍ¨µÀ0µÄÓÐÐ§Êý¾Ý¿í¶È
+  142   1        
+  143   1        nrf_writereg(FLUSH_RX, _NOP);                                //Çå³ýRX FIFO¼Ä´æÆ÷
+  144   1        
+  145   1        //TXÄ£Ê½ÅäÖÃ
+  146   1        nrf_writebuf(NRF_WRITE_REG + TX_ADDR, TX_ADDRESS, ADR_WIDTH);   //Ð´TX½ÚµãµØÖ·
+  147   1        
+  148   1        nrf_writereg(NRF_WRITE_REG + SETUP_RETR, 0x05);                 //ÉèÖÃ×Ô¶¯ÖØ·¢¼ä¸ôÊ±¼ä:250us; ×î´ó×Ô¶¯Ö
+             -Ø·¢´ÎÊý:10´Î
+  149   1        
+  150   1        nrf_writereg(FLUSH_TX, _NOP);                                    //Çå³ýTX FIFO¼Ä´æÆ÷
+  151   1        
+  152   1        nrf_rx_mode();                                                  //Ä¬ÈÏ½øÈë½ÓÊÕÄ£Ê½
+  153   1        
+  154   1        RF2G4_CE_HIGH;    
+  155   1        
+  156   1        return nrf_link_check();  
+  157   1      }
+  158          
+  159          
+  160          // ¼ì²âNRF24L01+ÓëMCUÊÇ·ñÕý³£Á¬½Ó
+  161          // return = 0:³É¹¦, 1:Ê§°Ü
+  162          //---------------------------------------------------------------------------------------------------
+  163          uint8_t nrf_link_check(void)
+  164          {
+  165   1      #define NRF_CHECH_DATA  0x06        //´ËÖµÎªÐ£ÑéÊý¾ÝÊ±Ê¹ÓÃ£¬¿ÉÐÞ¸ÄÎªÆäËûÖµ
+  166   1        
+  167   1        uint8_t reg;
+  168   1        
+  169   1        uint8_t buff[5] = {NRF_CHECH_DATA, NRF_CHECH_DATA, NRF_CHECH_DATA, NRF_CHECH_DATA, NRF_CHECH_DATA};
+  170   1        uint8_t i;
+  171   1        //Ð´ÈëÐ£ÑéÊý¾Ý
+  172   1        reg = NRF_WRITE_REG + TX_ADDR; 
+  173   1        
+  174   1        RF2G4_CE_LOW;
+  175   1        
+  176   1        nrf_writebuf(reg ,buff, 5);//Ð´ÈëÐ£ÑéÊý¾Ý
+  177   1        
+  178   1        //¶ÁÈ¡Ð£ÑéÊý¾Ý
+  179   1        reg = TX_ADDR;
+  180   1        nrf_readbuf(reg ,buff, 5);//¶ÁÈ¡Ð£ÑéÊý¾Ý
+  181   1        
+  182   1        RF2G4_CE_HIGH;
+  183   1        /*±È½Ï*/
+  184   1        for(i = 0; i < 5; i++)
+  185   1        {
+  186   2          if(buff[i] != NRF_CHECH_DATA)
+  187   2          {
+  188   3            return 0;          //MCUÓëNRF²»Õý³£Á¬½Ó
+C251 COMPILER V5.60.0,  nrf24l01                                                           23/11/25  20:59:46  PAGE 4   
+
+  189   3          }
+  190   2        }
+  191   1        return 1 ;             //MCUÓëNRF³É¹¦Á¬½Ó
+  192   1      }
+  193          
+  194          
+  195          /*!
+  196          *  @brief      NRF24L01+½øÈë½ÓÊÕÄ£Ê½
+  197          *  @since      v5.0
+  198          */
+  199          void nrf_rx_mode(void)
+  200          {
+  201   1        RF2G4_CE_LOW;
+  202   1        
+  203   1        nrf_writereg(NRF_WRITE_REG + EN_AA, 0x01);          //Ê¹ÄÜÍ¨µÀ0µÄ×Ô¶¯Ó¦´ð
+  204   1        
+  205   1        nrf_writereg(NRF_WRITE_REG + EN_RXADDR, 0x01);      //Ê¹ÄÜÍ¨µÀ0µÄ½ÓÊÕµØÖ·
+  206   1        
+  207   1        nrf_writebuf(NRF_WRITE_REG + RX_ADDR_P0, RX_ADDRESS, ADR_WIDTH); //Ð´RX½ÚµãµØÖ·
+  208   1        
+  209   1        nrf_writereg(NRF_WRITE_REG + CONFIG, 0x0B | (IS_CRC16 << 2));       //ÅäÖÃ»ù±¾¹¤×÷Ä£Ê½µÄ²ÎÊý;PWR_UP,EN_
+             -CRC,16BIT_CRC,½ÓÊÕÄ£Ê½
+  210   1        
+  211   1        /* Çå³ýÖÐ¶Ï±êÖ¾*/
+  212   1        nrf_writereg(NRF_WRITE_REG + STATUS, _NOP);
+  213   1        
+  214   1        nrf_writereg(FLUSH_RX, _NOP);                    //Çå³ýRX FIFO¼Ä´æÆ÷
+  215   1        
+  216   1        RF2G4_CE_HIGH; 
+  217   1        
+  218   1        nrf_mode = RX_MODE;
+  219   1      }
+  220          
+  221          /*!
+  222          *  @brief      NRF24L01+½øÈë·¢ËÍÄ£Ê½
+  223          *  @since      v5.0
+  224          */
+  225          void nrf_tx_mode(void)
+  226          {
+  227   1        RF2G4_CE_LOW;                 
+  228   1        
+  229   1        nrf_writebuf(NRF_WRITE_REG + TX_ADDR, TX_ADDRESS, ADR_WIDTH); //Ð´TX½ÚµãµØÖ·
+  230   1        
+  231   1        nrf_writebuf(NRF_WRITE_REG + RX_ADDR_P0, RX_ADDRESS, ADR_WIDTH); //ÉèÖÃRX½ÚµãµØÖ· ,Ö÷ÒªÎªÁËÊ¹ÄÜACK
+  232   1        
+  233   1        nrf_writereg(NRF_WRITE_REG + CONFIG, 0x0A | (IS_CRC16 << 2)); //ÅäÖÃ»ù±¾¹¤×÷Ä£Ê½µÄ²ÎÊý;PWR_UP,EN_CRC,16
+             -BIT_CRC,·¢ÉäÄ£Ê½,¿ªÆôËùÓÐÖÐ¶Ï
+  234   1        
+  235   1        RF2G4_CE_HIGH;   
+  236   1        
+  237   1        nrf_mode = TX_MODE;
+  238   1        
+  239   1        Ms_Delay(25);
+  240   1      }
+  241          
+  242          //·¢ËÍ²»ÄÜÌ«¿ì
+  243          void nrf_tx_packet(uint8_t* txbuf, uint8_t len)
+  244          {
+  245   1        uint8_t crc = 0;
+  246   1        int i ;
+  247   1        if((txbuf == 0) || len <= 0)return;
+  248   1        TX_Buff[0] = len + 1; //Ö¡Í· ×Ö½Ú³¤¶È
+  249   1        memcpy(TX_Buff + 1, txbuf, len); //»ñÈ¡Êý¾Ý
+  250   1        for(i = 0; i < len; i++)
+  251   1          crc += *(txbuf + i);
+  252   1        TX_Buff[len + 1] = crc; //Ö¡Î²Ð£Ñé
+C251 COMPILER V5.60.0,  nrf24l01                                                           23/11/25  20:59:46  PAGE 5   
+
+  253   1        //·¢ËÍ
+  254   1        if( nrf_mode != TX_MODE)
+  255   1        {
+  256   2          nrf_tx_mode();
+  257   2        }
+  258   1        RF2G4_CE_LOW;  
+  259   1        nrf_writebuf(WR_TX_PLOAD, (uint8_t *)TX_Buff, len + 2);
+  260   1        RF2G4_CE_HIGH;  
+  261   1      }
+  262          
+  263          
+  264          void nrf_handler(void)
+  265          {
+  266   1        uint8_t state;
+  267   1        /*¶ÁÈ¡status¼Ä´æÆ÷µÄÖµ  */
+  268   1        //RF2G4_CE_LOW;
+  269   1        state = nrf_readreg(STATUS);
+  270   1      
+  271   1        /* Çå³ýÖÐ¶Ï±êÖ¾*/
+  272   1        nrf_writereg(NRF_WRITE_REG + STATUS, state);
+  273   1        //RF2G4_CE_HIGH; 
+  274   1        if(state & RX_DR) //½ÓÊÕµ½Êý¾Ý
+  275   1        { 
+  276   2          //¶ÁÈ¡Êý¾Ý²¢½â°ü
+  277   2          RF2G4_CE_LOW;
+  278   2          nrf_readbuf(RD_RX_PLOAD, RX_Buff, RX_PACKET_LENTH); 
+  279   2          Rc_unpack_data(RX_Buff);
+  280   2          RF2G4_CE_HIGH;
+  281   2        }
+  282   1        
+  283   1        if(state & TX_DS) //·¢ËÍÍêÊý¾Ý
+  284   1        {
+  285   2          //RF2G4_CE_LOW;
+  286   2          nrf_writereg(FLUSH_TX, _NOP);      //Çå³ýTX FIFO
+  287   2          //RF2G4_CE_HIGH;
+  288   2          if( nrf_mode != RX_MODE)
+  289   2          {
+  290   3            nrf_rx_mode();
+  291   3          }
+  292   2        }
+  293   1        
+  294   1        if(state & MAX_RT)      //·¢ËÍ³¬Ê±
+  295   1        {
+  296   2          //RF2G4_CE_LOW;
+  297   2          nrf_writereg(FLUSH_TX, _NOP);   //Çå³ýTX FIFO¼Ä´æÆ÷
+  298   2          //RF2G4_CE_HIGH;
+  299   2          if( nrf_mode != RX_MODE)       //½øÈë ½ÓÊÕ×´Ì¬
+  300   2          {
+  301   3            nrf_rx_mode();
+  302   3          }                                  
+  303   2        }
+  304   1        
+  305   1        if(state & TX_FULL) //TX FIFO Âú
+  306   1        {
+  307   2          
+  308   2        }
+  309   1      }
+  310          
+  311          //Êý¾Ý°üÑ¹Ëõºó·¢ËÍ
+  312          uint8_t label = 0;
+  313          void RCPacket_Send(void)
+  314          {
+  315   1        int i;
+  316   1        uint8_t crc = 0;
+  317   1        SendPack_t* pack_t = get_sendpack_point();
+  318   1        int number = 0;
+C251 COMPILER V5.60.0,  nrf24l01                                                           23/11/25  20:59:46  PAGE 6   
+
+  319   1        for(i = label; i < 3 + label; i++) //°üÑ¹Ëõ
+  320   1        {
+  321   2          int pot = number * 10 + 1;
+  322   2          if(pack_t->Mode[i] == 1) //×Ö·û´®+Êý×Ö
+  323   2          {
+  324   3            TX_Buff[pot] = 0;
+  325   3            TX_Buff[pot] |= (pack_t->line[i].Namelenth << 4) | (pack_t->line[i].Row << 1) | (pack_t->line[i].Si
+             -ze);
+  326   3            memcpy(TX_Buff + pot + 1, pack_t->line[i].Name, pack_t->line[i].Namelenth); 
+  327   3            memcpy(TX_Buff + pot + 6, pack_t->line[i].Number, sizeof(float));
+  328   3            number ++;
+  329   3          }
+  330   2          else if(pack_t->Mode[i] == 2) //Êý×Ö+Êý×Ö
+  331   2          {
+  332   3            TX_Buff[pot] = 1 << 7;
+  333   3            TX_Buff[pot] |= (pack_t->line[i].Row << 1) | (pack_t->line[i].Size);
+  334   3            memcpy(TX_Buff + pot + 1, pack_t->line[i].Number, 2 * sizeof(float)); 
+  335   3            number ++;
+  336   3          }
+  337   2          else if(pack_t->Mode[i] == 3) //ÇåÐÐ
+  338   2          {
+  339   3            TX_Buff[pot] = 0x70;
+  340   3            TX_Buff[pot] |= (pack_t->line[i].Row << 1) | (pack_t->line[i].Size);
+  341   3            number ++;
+  342   3          }
+  343   2          
+  344   2          pack_t->Mode[i] = 0; //»ñÈ¡Êý¾ÝºóÇå³þ±ê¼Ç
+  345   2        }
+  346   1        if(number != 0) //°ü·¢ËÍ
+  347   1        {
+  348   2          TX_Buff[0] = number * 10 + 1; //Ö¡Í·
+  349   2          crc = 0;
+  350   2          for(i = 1; i < TX_Buff[0] ; i++)
+  351   2            crc += TX_Buff[i];
+  352   2          TX_Buff[TX_Buff[0]] = crc; //Ö¡Î²
+  353   2          if( nrf_mode != TX_MODE)
+  354   2          {
+  355   3            nrf_tx_mode();
+  356   3          }
+  357   2          //·¢ËÍ
+  358   2          RF2G4_CE_LOW;
+  359   2          nrf_writebuf(WR_TX_PLOAD, TX_Buff, TX_PACKET_LENTH);
+  360   2          RF2G4_CE_HIGH;
+  361   2        }
+  362   1        if(label)label = 0;
+  363   1        else label = 3;
+  364   1      }
+  365          
+  366          //----------------------SPIÐ´²Ù×÷----------------------------//
+  367          void nrf_writereg(uint8_t reg, uint8_t dat)
+  368          {
+  369   1        RF2G4_CSN_LOW;              // Ê¹ÄÜSPI´«Êä
+  370   1        
+  371   1        SPI_ReadWriteByte(reg);    // ·¢ËÍ¼Ä´æÆ÷ºÅ
+  372   1        SPI_ReadWriteByte(dat);   // Ð´Èë¼Ä´æÆ÷µÄÖµ
+  373   1        
+  374   1        RF2G4_CSN_HIGH;              // ½ûÖ¹SPI´«Êä  
+  375   1      }
+  376          
+  377          
+  378          void nrf_writebuf(uint8_t reg, uint8_t *pBuf, uint16_t len) reentrant
+  379          {
+  380   1        uint16_t i;
+  381   1        RF2G4_CSN_LOW;              // Ê¹ÄÜSPI´«Êä
+  382   1        
+  383   1        SPI_ReadWriteByte(reg);   // ·¢ËÍ¼Ä´æÆ÷ºÅ
+C251 COMPILER V5.60.0,  nrf24l01                                                           23/11/25  20:59:46  PAGE 7   
+
+  384   1        for(i = 0; i < len; i++)
+  385   1          SPI_ReadWriteByte(*(pBuf + i));
+  386   1        
+  387   1        RF2G4_CSN_HIGH;              // ½ûÖ¹SPI´«Êä  
+  388   1      }
+  389          
+  390          //----------------------SPI¶Á²Ù×÷----------------------------//
+  391          uint8_t nrf_readreg(uint8_t reg)
+  392          {
+  393   1        uint8_t value;
+  394   1        RF2G4_CSN_LOW;                // Ê¹ÄÜSPI´«Êä    
+  395   1        
+  396   1        SPI_ReadWriteByte(reg);         // ·¢ËÍ¼Ä´æÆ÷ºÅ
+  397   1        value = SPI_ReadWriteByte(0xFF);    // ¶ÁÈ¡¼Ä´æÆ÷ÄÚÈÝ
+  398   1        
+  399   1        RF2G4_CSN_HIGH;               // ½ûÖ¹SPI´«Êä    
+  400   1        
+  401   1        return value;
+  402   1      }
+  403          
+  404          void nrf_readbuf(uint8_t reg, uint8_t *pBuf, uint16_t len) reentrant
+  405          {
+  406   1        uint16_t i;
+  407   1        RF2G4_CSN_LOW;                // Ê¹ÄÜSPI´«Êä
+  408   1      
+  409   1        SPI_ReadWriteByte(reg);   // ·¢ËÍ¼Ä´æÆ÷Öµ(Î»ÖÃ),²¢¶ÁÈ¡×´Ì¬Öµ
+  410   1      
+  411   1        for(i = 0; i < len; i++)
+  412   1          *(pBuf + i) = SPI_ReadWriteByte(0xFF);  // ¶Á³öÊý¾Ý
+  413   1      
+  414   1        RF2G4_CSN_HIGH;               // ¹Ø±ÕSPI´«Êä
+  415   1      }
+  416              
+  417          void P2_INT_ISR_Handler (void) interrupt P2INT_VECTOR
+  418          {
+  419   1        GPIO_EXTI_Flag_Read(GPIO_P2);   //±êÖ¾Î»¸³Öµ+Çå¿Õ±êÖ¾Î»
+  420   1        if(Port_Exti_Flag[2])
+  421   1        {
+  422   2        GPIO_EXTI_Flag_Clear(GPIO_P2);
+  423   2        if(Port_Exti_Flag[2] & Port_Pin_0)
+  424   2        {
+  425   3          //P2.0ÖÐ¶Ï
+  426   3        }
+  427   2        if(Port_Exti_Flag[2] & Port_Pin_1)
+  428   2        {
+  429   3          //P2.1ÖÐ¶Ï
+  430   3        }
+  431   2        if(Port_Exti_Flag[2] & Port_Pin_2)
+  432   2        {
+  433   3          //P2.2ÖÐ¶Ï
+  434   3        }
+  435   2        if(Port_Exti_Flag[2] & Port_Pin_3)
+  436   2        {
+  437   3          //P2.3ÖÐ¶Ï
+  438   3        }
+  439   2        if(Port_Exti_Flag[2] & Port_Pin_4)
+  440   2        {
+  441   3          //P2.4ÖÐ¶Ï
+  442   3        }
+  443   2        if(Port_Exti_Flag[2] & Port_Pin_5)
+  444   2        {
+  445   3          //P2.5ÖÐ¶Ï
+  446   3        }
+  447   2        if(Port_Exti_Flag[2] & Port_Pin_6)
+  448   2        {
+  449   3          //P2.6ÖÐ¶Ï
+C251 COMPILER V5.60.0,  nrf24l01                                                           23/11/25  20:59:46  PAGE 8   
+
+  450   3          nrf_handler();
+  451   3        }
+  452   2        if(Port_Exti_Flag[2] & Port_Pin_7)
+  453   2        {
+  454   3          //P2.7ÖÐ¶Ï
+  455   3        }
+  456   2        } 
+  457   1      }
+  458          
+  459          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =      1651     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        59         14
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        44     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -19,7 +19,8 @@
 ".\Objects\CNU_PIE_PWM.obj",
 ".\Objects\CNU_PIE_WDog.obj",
 ".\Objects\CNU_PIE_UART.obj",
-".\Objects\CNU_PIE_FIFO.obj" 
+".\Objects\CNU_PIE_FIFO.obj",
+".\Objects\STC32G_EEPROM.obj" 
 TO ".\Objects\Project_Template" 
 PRINT(".\Listings\Project_Template.map") CASE DISABLEWARNING (16,57) 
 CLASSES (EDATA (0x0-0xFFF), 
