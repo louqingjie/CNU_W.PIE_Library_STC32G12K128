@@ -1,5 +1,4 @@
 #include "main.h"
-#include "STC32G_EEPROM.h"
 #include <MATH.H>
 
 // ========================= 参数区 =========================
@@ -54,7 +53,7 @@ float    error;                                // 当前误差
 float    pidOut;                               // PID输出
 float    lastError;                            // 上次误差
 float    adcAfterNorm[4];                      // 归一化后的ADC值
-uint16_t i, j, k;
+uint32_t i, j, k;
 uint16_t temp, getADC[9];
 float    den;
 float    num;
@@ -80,9 +79,10 @@ void     EEPROM_Load(float *kp, float *kd, float *kA, float *kB, uint16_t *minSp
 // ========================= 主函数 =========================
 void main()
 {
-    All_Init(midDutyOfServo, adcPin);      // 初始化所有外设
+    All_Init(midDutyOfServo, adcPin); // 初始化所有外设
     // ADC_Norm_Fast(adcMax, adcMin, adcPin); // 快速ADC校准
     EXTI_Init(timerMs);
+    EEPROM_Save(&kp, &kd, &kA, &kB, &minSpeed, &maxSpeed);
     EEPROM_Load(&kp, &kd, &kA, &kB, &minSpeed, &maxSpeed);
     while (1) {
         // ========================= BIOS系统处理 =========================
@@ -105,12 +105,12 @@ void main()
         }
         // ========================= 运行控制处理 =========================
         // 检测是否在赛道上，如果所有传感器都检测不到黑线则停止
-//        while ((adcRaw[0] <= adcMin[0] || adcRaw[0] <= stopADC) &&
-//               (adcRaw[1] <= adcMin[1] || adcRaw[1] <= stopADC) &&
-//               (adcRaw[2] <= adcMin[2] || adcRaw[2] <= stopADC) &&
-//               (adcRaw[3] <= adcMin[3] || adcRaw[3] <= stopADC)) {
-//            Go(0, 0, 0); // 停止电机
-//        };
+        //        while ((adcRaw[0] <= adcMin[0] || adcRaw[0] <= stopADC) &&
+        //               (adcRaw[1] <= adcMin[1] || adcRaw[1] <= stopADC) &&
+        //               (adcRaw[2] <= adcMin[2] || adcRaw[2] <= stopADC) &&
+        //               (adcRaw[3] <= adcMin[3] || adcRaw[3] <= stopADC)) {
+        //            Go(0, 0, 0); // 停止电机
+        //        };
         // 显示误差信息
         Show_Error_On_Sceen(error, pidOut, adcRaw);
         // 电机控制
@@ -374,32 +374,54 @@ void BIOS(uint16_t biosKey, uint16_t minSpeed, uint16_t maxSpeed, float kp, floa
     }
 }
 
+void EERPOPM_Init()
+{
+    IAP_TPS = FOSC / 1000000;
+}
+
 void EEPROM_Save(float *kp, float *kd, float *kA, float *kB, uint16_t *minSpeed, uint16_t *maxSpeed)
 {
-    // 只擦除一个扇区
-    EEPROM_SectorErase(0);
-    
-    // 需要将指针转换为uint8_t*类型
-    EEPROM_write_n(0, (uint8_t *)kp, 4);        // float是4字节
-    EEPROM_write_n(4, (uint8_t *)kd, 4);
-    EEPROM_write_n(8, (uint8_t *)kA, 4);
-    EEPROM_write_n(12, (uint8_t *)kB, 4);
-    EEPROM_write_n(16, (uint8_t *)minSpeed, 2); // uint16_t是2字节
-    EEPROM_write_n(18, (uint8_t *)maxSpeed, 2);
 }
 
 void EEPROM_Load(float *kp, float *kd, float *kA, float *kB, uint16_t *minSpeed, uint16_t *maxSpeed)
 {
-    // 需要将指针转换为uint8_t*类型
-    EEPROM_read_n(0, (uint8_t *)kp, 4);
-    EEPROM_read_n(4, (uint8_t *)kd, 4);
-    EEPROM_read_n(8, (uint8_t *)kA, 4);
-    EEPROM_read_n(12, (uint8_t *)kB, 4);
-    EEPROM_read_n(16, (uint8_t *)minSpeed, 2);
-    EEPROM_read_n(18, (uint8_t *)maxSpeed, 2);
+    char     dat;
+    uint32_t addr;
+
+    EA        = 0;
+    IAP_CONTR = 0x80;
+    /*
+    符号	    地址     B7	     B6	     B5	     B4	        B3	B2	B1	B0
+    IAP_CONTR	C7H     IAPEN	SWBS	SWRST	CMD_FAIL	-	-	-	-
+    IAPEN：EEPROM操作使能控制位
+        0：禁止 EEPROM 操作
+        1：使能 EEPROM 操作
+    SWBS：软件复位选择控制位，（需要与SWRST配合使用）
+        0：软件复位后从用户代码开始执行程序
+        1：软件复位后从系统 ISP 监控代码区开始执行程序
+    SWRST：软件复位控制位
+        0：无动作
+        1：产生软件复位
+    CMD_FAIL：EEPROM操作失败状态位，需要软件清零
+        0：EEPROM 操作正确
+        1：EEPROM 操作失败
+    */
+    IAP_TPS = FOSC / 1000000;
+    /*
+    EEPROM 擦除等待时间控制寄存器（IAP_TPS）
+
+符号	地址	B7	B6	B5	B4	B3	B2	B1	B0
+IAP_TPS	F5H	-	-	IAP_TPS[5:0]
+需要根据工作频率进行设置
+若工作频率为12MHz，则需要将IAP_TPS设置为12；若工作频率为24MHz，则需要将IAP_TPS设置为24，其他频率以此类推。
+    */
+    IAP_CMD   = 1;
+    IAP_ADDRL = addr;
+    IAP_ADDRH = addr >> 8;
+    IAP_ADDRE = addr >> 16;
+    IAP_TRIG  = 0x5A; //
+    IAP_TRIG  = 0xA5;
 }
-
-
 
 // ========================= 中断服务函数 =========================
 
