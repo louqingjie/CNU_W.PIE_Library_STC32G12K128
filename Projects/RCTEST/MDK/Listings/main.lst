@@ -1,0 +1,51 @@
+C251 COMPILER V5.60.0,  main                                                               27/11/25  19:44:53  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE main
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\USER\src\main.c XSMALL BROWSE INCDIR(..\..\..\Librari
+                    -es\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG PRINT(.\Listings\main.lst
+                    -) TABS(2) OBJECT(.\Objects\main.obj) 
+
+stmt  level    source
+
+    1          #include "main.h"
+    2          void main(void)
+    3          {
+    4   1          Board_Init();
+    5   1          GPIO_Init(GPIO_P3, GPIO_Pin_4, GPIO_OUT_PP);
+    6   1          GPIO_Write_Bit(GPIO_P3, GPIO_Pin_4, 0);
+    7   1          remote_control_init();
+    8   1          GPIO_Write_Bit(GPIO_P3, GPIO_Pin_4, 1);
+    9   1          UART_Init(UART_1, UART1_RX_P30, UART1_TX_P31, 230400, TIM1);
+   10   1          while (1) {
+   11   2              if (RcKeyValueRead(KEY_OFFSET_UP))
+   12   2                  GPIO_Write_Bit(GPIO_P3, GPIO_Pin_7, 0);
+   13   2              else
+   14   2                  GPIO_Write_Bit(GPIO_P3, GPIO_Pin_7, 1);
+   15   2          }
+   16   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       104     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

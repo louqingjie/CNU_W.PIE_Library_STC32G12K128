@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  main                                                               23/11/25  21:33:35  PAGE 1   
+C251 COMPILER V5.60.0,  main                                                               28/11/25  13:36:19  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE main
@@ -14,73 +14,86 @@ stmt  level    source
     3          #define MOTOR_R PWMA_CH3P_P64
     4          #define MOTOR_BASE_L PWMA_CH1P_P60
     5          #define MOTOR_BASE_R PWMA_CH4P_P66
-    6          uint32_t encNum[2];
-    7          uint32_t aveNum[20];
-    8          char     encLine[16];
-    9          void     main(void)
-   10          {
-   11   1          Board_Init();
-   12   1          GPIO_EXTI_Init(GPIO_P0, GPIO_Pin_4, FALLING_EDGE);
-   13   1          GPIO_EXTI_Open(GPIO_P0, GPIO_Pin_4);
-   14   1          GPIO_EXTI_Init(GPIO_P5, GPIO_Pin_2, RISING_EDGE);
-   15   1          GPIO_EXTI_Open(GPIO_P5, GPIO_Pin_2);
-   16   1          PWM_Init(MOTOR_L, 10000, 10000);
-   17   1          PWM_Init(MOTOR_R, 10000, 10000);
-   18   1          PWM_Init(MOTOR_BASE_L, 10000, 10000);
-   19   1          PWM_Init(MOTOR_BASE_R, 10000, 10000);
-   20   1          LCD_Init();
-   21   1          PIT_Timer_Ms(TIM0, 20);
-   22   1          while (1) {
-   23   2              PWM_SET_Duty(MOTOR_L, 8000);
-   24   2              PWM_SET_Duty(MOTOR_R, 8000);
-   25   2              sprintf(encLine, "%04d  %04d", encNum[0], encNum[1]);
-   26   2              LCD_P8x16Str(0, 3, encLine);
-   27   2              encNum[0] = 0;
-   28   2              encNum[1] = 0;
-   29   2              Ms_Delay(200);
-   30   2          }
-   31   1      }
-   32          
-   33          void P0_EXTI_Activated() interrupt P0INT_VECTOR
-   34          {
-   35   1          GPIO_EXTI_Flag_Read(GPIO_P0);
-   36   1          if (Port_Exti_Flag[0]) {
-   37   2              GPIO_EXTI_Flag_Clear(GPIO_P0);
-   38   2              if (Port_Exti_Flag[0] & Port_Pin_4) {
-   39   3                  encNum[0]++;
-   40   3              }
+    6          float    kp = 2, ki = 0.2, kd = 0;
+    7          uint16_t speed = 1000, maxSpeed = 4000;
+    8          int      output, error, lastError, lastLastError, duty;
+    9          uint16_t encNum;
+   10          char     encLine[16];
+   11          float    PID_Incremental_Calculate(float error, float lastError, float lastLastError);
+   12          void     main(void)
+   13          {
+   14   1          Board_Init();
+   15   1          GPIO_EXTI_Init(GPIO_P0, GPIO_Pin_4, FALLING_EDGE);
+   16   1          GPIO_EXTI_Open(GPIO_P0, GPIO_Pin_4);
+   17   1          PWM_Init(MOTOR_L, 10000, 10000);
+   18   1          PWM_Init(MOTOR_R, 10000, 10000);
+   19   1          PWM_Init(MOTOR_BASE_L, 10000, 10000);
+   20   1          PWM_Init(MOTOR_BASE_R, 10000, 10000);
+   21   1          LCD_Init();
+   22   1          PIT_Timer_Ms(TIM0, 20);
+   23   1          while (1) {
+   24   2              error  = speed - encNum * 10;
+   25   2              output = (int)PID_Incremental_Calculate(error, lastError, lastLastError);
+   26   2              duty   = speed + 10*output;
+   27   2              if (duty > 4000)
+   28   2                  duty = 4000;
+   29   2              if (duty < 0)
+   30   2                  duty = 0;
+   31   2              PWM_SET_Duty(MOTOR_L, 10000 - duty);
+   32   2              PWM_SET_Duty(MOTOR_R, 10000 - duty);
+   33   2              sprintf(encLine, "%04d %+d    ", encNum, output);
+   34   2              LCD_P8x16Str(0, 3, encLine);
+   35   2              sprintf(encLine, "%05d    ", duty);
+   36   2              LCD_P8x16Str(0, 1, encLine);
+   37   2              lastLastError = lastError;
+   38   2              lastError     = error;
+   39   2              encNum        = 0;
+   40   2              Ms_Delay(20);
    41   2          }
    42   1      }
    43          
-   44          void P5_EXTI_Activated() interrupt P5INT_VECTOR
+   44          float PID_Incremental_Calculate(float error, float lastError, float lastLastError)
    45          {
-   46   1          GPIO_EXTI_Flag_Read(GPIO_P5);
-   47   1          if (Port_Exti_Flag[5]) {
-   48   2              GPIO_EXTI_Flag_Clear(GPIO_P5);
-   49   2              if (Port_Exti_Flag[5] & Port_Pin_2) {
-   50   3                  encNum[1]++;
-   51   3              }
-   52   2          }
-   53   1      }
-   54          
-   55          void PIT0_Activated() interrupt TMR0_VECTOR
-   56          {
-   57   1          PIT_Timer_Clear(TIM0);
-C251 COMPILER V5.60.0,  main                                                               23/11/25  21:33:35  PAGE 2   
+   46   1          float pTerm, iTerm, dTerm, output;
+   47   1      
+   48   1          pTerm = kp * (error - lastError);
+   49   1          iTerm = ki * error;
+   50   1          dTerm = kd * (error - 2 * lastError + lastLastError);
+   51   1      
+   52   1          output = pTerm + iTerm + dTerm;
+   53   1      
+   54   1          return output;
+   55   1      }
+   56          
+   57          void P0_EXTI_Activated() interrupt P0INT_VECTOR
+C251 COMPILER V5.60.0,  main                                                               28/11/25  13:36:19  PAGE 2   
 
-   58   1      }
+   58          {
+   59   1          GPIO_EXTI_Flag_Read(GPIO_P0);
+   60   1          if (Port_Exti_Flag[0]) {
+   61   2              GPIO_EXTI_Flag_Clear(GPIO_P0);
+   62   2              if (Port_Exti_Flag[0] & Port_Pin_4) {
+   63   3                  encNum++;
+   64   3              }
+   65   2          }
+   66   1      }
+   67          
+   68          void PIT0_Activated() interrupt TMR0_VECTOR
+   69          {
+   70   1          PIT_Timer_Clear(TIM0);
+   71   1      }
 
 
 Module Information          Static   Overlayable
 ------------------------------------------------
-  code size            =       411     ------
+  code size            =       553     ------
   ecode size           =    ------     ------
   data size            =    ------     ------
   idata size           =    ------     ------
   pdata size           =    ------     ------
   xdata size           =    ------     ------
   xdata-const size     =    ------     ------
-  edata size           =       104     ------
+  edata size           =        44          4
   bit size             =    ------     ------
   ebit size            =    ------     ------
   bitaddressable size  =    ------     ------
@@ -88,7 +101,7 @@ Module Information          Static   Overlayable
   far data size        =    ------     ------
   huge data size       =    ------     ------
   const size           =    ------     ------
-  hconst size          =        11     ------
+  hconst size          =        58     ------
 End of Module Information.
 
 

@@ -1,0 +1,178 @@
+C251 COMPILER V5.60.0,  CNU_PIE_SPI                                                        25/11/25  19:16:54  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE CNU_PIE_SPI
+OBJECT MODULE PLACED IN .\Objects\CNU_PIE_SPI.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\..\..\Libraries\deivers\src\CNU_PIE_SPI.c XSMALL BROW
+                    -SE INCDIR(..\..\..\Libraries\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG
+                    - PRINT(.\Listings\CNU_PIE_SPI.lst) TABS(2) OBJECT(.\Objects\CNU_PIE_SPI.obj) 
+
+stmt  level    source
+
+    1          /********************************************************************************************************
+             -*************
+    2           *     COPYRIGHT NOTICE
+    3           *     Copyright (c) 2023,CNU_W.PIE
+    4           *     All rights reserved.
+    5           *
+    6           *     除注明出处外，以下所有内容版权均属胖胖个人所有，未经允许，不得用于商业用途，
+    7           *     修改内容时必须保留PP的版权声明。
+    8           *     Except where indicated, the copyright of all the contents below is owned by PP 
+    9           *     and can not be used for commercial purposes without permission. 
+   10           *     The copyright notice of PP must be preserved when modifying the content.
+   11           *
+   12           * @file       CNU_PIE_SPI.c
+   13           * @brief      SPI
+   14           * @author     胖胖
+   15           * @version    v1.0
+   16           * @note       NULL
+   17           * @date       2023-07-26
+   18           ********************************************************************************************************
+             -************/
+   19          #include "CNU_PIE_SPI.h"
+   20          #include "CNU_PIE_GPIO.h"
+   21          
+   22          uint8_t   SPI_RxTimerOut;
+   23          uint8_t   SPI_BUF_type SPI_RxBuffer[SPI_BUF_LENTH];
+   24          bit B_SPI_Busy; //发送忙标志
+   25          
+   26           /*******************************************************************************************************
+             -*******************
+   27           * @brief  SPI初始化
+   28           * @exampleCode
+   29           *      SPI_Init(SPI_1, 1 , SPI_LSB , SPI_CPOL_High , SPI_CPHA_2Edge , SPI_Speed_16 , SPI_Mode_Master , 1
+             -); //初始化SPI1 , 启用CS引脚 CPOL高 CPHA双边 时钟分频16分频 主机模式 开启SPI
+   30           * @endcode
+   31           * @param[in]  SPI_CHN    SPI组号 
+   32           * @param[in]  SS_CFG     是否启用SS引脚              
+   33           * @param[in]  FirstBit   SPI接收模式
+   34           * @param[in]  cpol/cpha  SPI时钟/相位极性控制
+   35           * @param[in]  Clock_Div  SPI总线速率
+   36           * @param[in]  SPI_Mode   SPI主机/从机
+   37           * @param[in]  SPI_EN     是否开启SPI
+   38          *********************************************************************************************************
+             -******************/
+   39          void SPI_Init(SPI_ENUM SPI_CHN , uint8_t SS_CFG , uint8_t FirstBit , uint8_t cpol , uint8_t cpha , uint8_
+             -t Clock_Div , uint8_t SPI_Mode , uint8_t SPI_EN)
+   40          {
+   41   1          switch(SPI_CHN)
+   42   1        {
+   43   2          case SPI_1:P_SW1 |= (0x00<<2);
+   44   2              break;
+   45   2          case SPI_2:P_SW1 |= (0x01<<2);
+   46   2              break;
+   47   2          case SPI_3:P_SW1 |= (0x02<<2);
+   48   2              break;
+   49   2          case SPI_4:P_SW1 |= (0x03<<2);
+   50   2              break;
+   51   2        }
+C251 COMPILER V5.60.0,  CNU_PIE_SPI                                                        25/11/25  19:16:54  PAGE 2   
+
+   52   1        if(SS_CFG) SSIG = 0;//使能SS 通过SS引脚确认主设备还是从设备
+   53   1        else SSIG = 1;      //禁用SS 通过SPI模式选择主从设备
+   54   1        SPEN = SPI_EN;      //使能SPI
+   55   1        DORD = FirstBit;    //选择接收模式 大端MSB 小端LSB
+   56   1        MSTR = SPI_Mode;   //主从设置
+   57   1        CPOL = cpol;        //SPI时钟极性控制
+   58   1        CPHA = cpha;        //SPI时钟相位控制
+   59   1        SPCTL = (SPCTL & ~0x03) | (Clock_Div);//速度/SPI时钟分频设置
+   60   1        SPI_RxTimerOut = 0;
+   61   1        B_SPI_Busy = 0;
+   62   1      }
+   63           /*******************************************************************************************************
+             -*******************
+   64           * @brief  SPI初始化
+   65           * @exampleCode
+   66           *      SPI_SetMode(SPI_Mode_Slave); //设置SPI为从机模式
+   67           * @endcode
+   68           * @param[in]  SPI_Mode   SPI模式
+   69          *********************************************************************************************************
+             -******************/
+   70          void SPI_SetMode(uint8_t SPI_Mode)
+   71          {
+   72   1        if(SPI_Mode == SPI_Mode_Slave)
+   73   1        {
+   74   2          MSTR = 0;   //重新设置为从机待机
+   75   2          SSIG = 0;   //SS引脚确定主从
+   76   2        }
+   77   1        else
+   78   1        {
+   79   2          MSTR = 1;   //使能 SPI 主机模式
+   80   2          SSIG = 1;   //忽略SS引脚功能
+   81   2        }
+   82   1      }
+   83           /*******************************************************************************************************
+             -*******************
+   84           * @brief  SPI写一个字节数据
+   85           * @exampleCode
+   86           *      SPI_WriteByte(0xFF); //SPI写一个字节数据 0xff
+   87           * @endcode
+   88           * @param[in]  dat   SPI写入的数据
+   89          *********************************************************************************************************
+             -******************/
+   90          void SPI_WriteByte(uint8_t dat)
+   91          {
+   92   1        if(ESPI)
+   93   1        {
+   94   2          B_SPI_Busy = 1;
+   95   2          SPDAT = dat;
+   96   2          while(B_SPI_Busy);  //中断模式
+   97   2        }
+   98   1        else
+   99   1        {
+  100   2          SPDAT = dat;
+  101   2          while(SPIF == 0); //查询模式
+  102   2          {SPIF = 1; WCOL = 1;}  //清除SPIF和WCOL标志
+  103   2        }
+  104   1      }
+  105           /*******************************************************************************************************
+             -*******************
+  106           * @brief  SPI读取一个字节数据
+  107           * @exampleCode
+  108           * uint8_t data;
+  109           * data = SPI_ReadByte(); //SPI读取一个字节数据
+  110           * @endcode
+  111           * @retval data   SPI读取的数据
+  112          *********************************************************************************************************
+C251 COMPILER V5.60.0,  CNU_PIE_SPI                                                        25/11/25  19:16:54  PAGE 3   
+
+             -******************/
+  113          uint8_t SPI_ReadByte(void)
+  114          {
+  115   1        SPDAT = 0xff;
+  116   1        while(SPIF == 0) ;
+  117   1        {SPIF = 1; WCOL = 1;}    //清0 SPIF和WCOL标志
+  118   1        return (SPDAT);
+  119   1      }
+  120          
+  121          uint8_t SPI_ReadWriteByte(uint8_t TxData)
+  122          {
+  123   1          SPDAT = TxData;                 //DATA寄存器赋值
+  124   1          while (!(SPSTAT & 0x80));     //查询完成标志
+  125   1          SPSTAT = 0xc0;                //清中断标志
+  126   1          return SPDAT;
+  127   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       182     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        65     ------
+  bit size             =         1     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

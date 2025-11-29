@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  remote_control                                                     21/11/25  18:55:24  PAGE 1   
+C251 COMPILER V5.60.0,  remote_control                                                     28/11/25  17:21:30  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE remote_control
@@ -28,143 +28,144 @@ stmt  level    source
    17          {  
    18   1        //Ci24R1初始化
    19   1        while(!NRF24L01_Init());
-   20   1        
-   21   1        memset(&sendpack, 0, sizeof(SendPack_t));
-   22   1        
-   23   1        //初始化结束开启中断
-   24   1        //PIT4中断配置 1ms中断
-   25   1        
-   26   1        //PIT_Timer_Ms(TIM4, 1);
-   27   1        
-   28   1         Ms_Delay(200);
-   29   1      }
-   30          
-   31          //遥控器协议解包
-   32          uint8_t Rc_unpack_data(uint8_t* data_t)
-   33          {
-   34   1        int i ;
-   35   1        uint8_t check = 0;
-   36   1        if(data_t[0] != 11) return 0; //帧头校验失败
-   37   1        for(i = 1; i < 11; i++)
-   38   1          check += data_t[i];
-   39   1        if(check != data_t[11]) return 0;//帧尾校验失败
-   40   1         
-   41   1        //解包
-   42   1        rc_ctrl.rocker.value[0] = (int16_t)(data_t[1] | data_t[2] << 8);
-   43   1        rc_ctrl.rocker.value[1] = (int16_t)(data_t[3] | data_t[4] << 8);
-   44   1        rc_ctrl.rocker.value[2] = (int16_t)(data_t[5] | data_t[6] << 8);
-   45   1        rc_ctrl.rocker.value[3] = (int16_t)(data_t[7] | data_t[8] << 8);
-   46   1        rc_ctrl.key.value = (uint16_t)(data_t[9] | data_t[10] << 8);
-   47   1        return 1;
-   48   1      }
-   49          
+   20   1        // NRF24L01_Init();
+   21   1      
+   22   1        memset(&sendpack, 0, sizeof(SendPack_t));
+   23   1        
+   24   1        //初始化结束开启中断
+   25   1        //PIT4中断配置 1ms中断
+   26   1        
+   27   1        //PIT_Timer_Ms(TIM4, 1);
+   28   1        
+   29   1         Ms_Delay(200);
+   30   1      }
+   31          
+   32          //遥控器协议解包
+   33          uint8_t Rc_unpack_data(uint8_t* data_t)
+   34          {
+   35   1        int i ;
+   36   1        uint8_t check = 0;
+   37   1        if(data_t[0] != 11) return 0; //帧头校验失败
+   38   1        for(i = 1; i < 11; i++)
+   39   1          check += data_t[i];
+   40   1        if(check != data_t[11]) return 0;//帧尾校验失败
+   41   1         
+   42   1        //解包
+   43   1        rc_ctrl.rocker.value[0] = (int16_t)(data_t[1] | data_t[2] << 8);
+   44   1        rc_ctrl.rocker.value[1] = (int16_t)(data_t[3] | data_t[4] << 8);
+   45   1        rc_ctrl.rocker.value[2] = (int16_t)(data_t[5] | data_t[6] << 8);
+   46   1        rc_ctrl.rocker.value[3] = (int16_t)(data_t[7] | data_t[8] << 8);
+   47   1        rc_ctrl.key.value = (uint16_t)(data_t[9] | data_t[10] << 8);
+   48   1        return 1;
+   49   1      }
    50          
-   51          /*
-   52          *@brief 将数据以及名字显示在对应行数
-   53          *@param 显示名字首地址
-   54          *@param 显示名字长度 最大为5个字符 
-   55          *@param 显示数据
-   56          *@param 位于遥控器的行数 0-5 共6行 否则不显示
-   57          *@param 显示大小 (0) 以6*8大小显示 (!0)以8*16大小显示
-C251 COMPILER V5.60.0,  remote_control                                                     21/11/25  18:55:24  PAGE 2   
+   51          
+   52          /*
+   53          *@brief 将数据以及名字显示在对应行数
+   54          *@param 显示名字首地址
+   55          *@param 显示名字长度 最大为5个字符 
+   56          *@param 显示数据
+   57          *@param 位于遥控器的行数 0-5 共6行 否则不显示
+C251 COMPILER V5.60.0,  remote_control                                                     28/11/25  17:21:30  PAGE 2   
 
-   58          *@example ShowStringData("abc", 3, 2.55, 0, 1);
-   59          */
-   60          void ShowStringData(char* name_t, uint8_t namelenth, float num, uint8_t row, uint8_t Size)
-   61          {
-   62   1        if(row > 5 || (name_t == 0 && namelenth != 0) || sendpack.Mode[row])return;
-   63   1        if(namelenth > 5)namelenth = 5;
-   64   1        memcpy(sendpack.line[row].Name, name_t, namelenth);
-   65   1        sendpack.line[row].Namelenth = namelenth;
-   66   1        sendpack.line[row].Number[0] = num;
-   67   1        sendpack.line[row].Row = row;
-   68   1        sendpack.line[row].Size = Size ? 1 : 0;
-   69   1        sendpack.Mode[row] = 1;
-   70   1      }
-   71          
+   58          *@param 显示大小 (0) 以6*8大小显示 (!0)以8*16大小显示
+   59          *@example ShowStringData("abc", 3, 2.55, 0, 1);
+   60          */
+   61          void ShowStringData(char* name_t, uint8_t namelenth, float num, uint8_t row, uint8_t Size)
+   62          {
+   63   1        if(row > 5 || (name_t == 0 && namelenth != 0) || sendpack.Mode[row])return;
+   64   1        if(namelenth > 5)namelenth = 5;
+   65   1        memcpy(sendpack.line[row].Name, name_t, namelenth);
+   66   1        sendpack.line[row].Namelenth = namelenth;
+   67   1        sendpack.line[row].Number[0] = num;
+   68   1        sendpack.line[row].Row = row;
+   69   1        sendpack.line[row].Size = Size ? 1 : 0;
+   70   1        sendpack.Mode[row] = 1;
+   71   1      }
    72          
-   73          /*
-   74          *@brief 将两个浮点型数据显示在对应行数
-   75          *@param 显示数据左
-   76          *@param 显示数据右
-   77          *@param 位于遥控器的行数 0-5 共6行 否则不显示
-   78          *@param 显示大小 (0) 以6*8大小显示 (!0)以8*16大小显示
-   79          *@example ShowData(1.0, 0.2, 0, 1); 
-   80          */
-   81          void ShowData(float numleft, float numright, uint8_t row, uint8_t Size)
-   82          {
-   83   1        if(row > 5 || sendpack.Mode[row])return;
-   84   1        sendpack.line[row].Number[0] = numleft;
-   85   1        sendpack.line[row].Number[1] = numright;
-   86   1        sendpack.line[row].Row = row;
-   87   1        sendpack.line[row].Size = Size ? 1 : 0;
-   88   1        sendpack.Mode[row] = 2;
-   89   1      }
-   90          
-   91          /*
-   92          *@brief 清除某一行显示内容
-   93          *@param 位于遥控器的行数 0-5 共6行 否则无效
-   94          *@param 大小 （0）一次清除一行 （！0）一次清除两行
-   95          *@example ShowLineClear(0, 1);  //清除第0,1行的显示内容
-   96          */
-   97          void ShowLineClear(uint8_t row, uint8_t Size)
-   98          {
-   99   1        if(row > 5)return;
-  100   1        sendpack.line[row].Row = row;
-  101   1        sendpack.line[row].Size = Size ? 1 : 0;
-  102   1        sendpack.Mode[row] = 3;
-  103   1      }
-  104          
-  105          /*
-  106          *@brief 获取遥控器按键值
-  107          *@param 按键序号 
-  108          *@return 按下返回1 松开返回0 输入错误返回-1
-  109          */
-  110          int8_t RcKeyValueRead(KEY_OFFSET_t offset)
-  111          {
-  112   1        if(offset > 15)return -1;
-  113   1        return (rc_ctrl.key.value & (1 << offset)) ? 1 : 0;
-  114   1      }
-  115          
-  116          /*
-  117          *@brief 获取遥控器摇杆adc采集值
-  118          *@param  摇杆序号
-  119          *@return 返回对应方向adc采集值
-  120          */
-  121          int16_t RcRockerValueRead(ROCKER_OFFSET_t offset)
-  122          {
-  123   1        return rc_ctrl.rocker.value[offset];
-C251 COMPILER V5.60.0,  remote_control                                                     21/11/25  18:55:24  PAGE 3   
+   73          
+   74          /*
+   75          *@brief 将两个浮点型数据显示在对应行数
+   76          *@param 显示数据左
+   77          *@param 显示数据右
+   78          *@param 位于遥控器的行数 0-5 共6行 否则不显示
+   79          *@param 显示大小 (0) 以6*8大小显示 (!0)以8*16大小显示
+   80          *@example ShowData(1.0, 0.2, 0, 1); 
+   81          */
+   82          void ShowData(float numleft, float numright, uint8_t row, uint8_t Size)
+   83          {
+   84   1        if(row > 5 || sendpack.Mode[row])return;
+   85   1        sendpack.line[row].Number[0] = numleft;
+   86   1        sendpack.line[row].Number[1] = numright;
+   87   1        sendpack.line[row].Row = row;
+   88   1        sendpack.line[row].Size = Size ? 1 : 0;
+   89   1        sendpack.Mode[row] = 2;
+   90   1      }
+   91          
+   92          /*
+   93          *@brief 清除某一行显示内容
+   94          *@param 位于遥控器的行数 0-5 共6行 否则无效
+   95          *@param 大小 （0）一次清除一行 （！0）一次清除两行
+   96          *@example ShowLineClear(0, 1);  //清除第0,1行的显示内容
+   97          */
+   98          void ShowLineClear(uint8_t row, uint8_t Size)
+   99          {
+  100   1        if(row > 5)return;
+  101   1        sendpack.line[row].Row = row;
+  102   1        sendpack.line[row].Size = Size ? 1 : 0;
+  103   1        sendpack.Mode[row] = 3;
+  104   1      }
+  105          
+  106          /*
+  107          *@brief 获取遥控器按键值
+  108          *@param 按键序号 
+  109          *@return 按下返回1 松开返回0 输入错误返回-1
+  110          */
+  111          int8_t RcKeyValueRead(KEY_OFFSET_t offset)
+  112          {
+  113   1        if(offset > 15)return -1;
+  114   1        return (rc_ctrl.key.value & (1 << offset)) ? 1 : 0;
+  115   1      }
+  116          
+  117          /*
+  118          *@brief 获取遥控器摇杆adc采集值
+  119          *@param  摇杆序号
+  120          *@return 返回对应方向adc采集值
+  121          */
+  122          int16_t RcRockerValueRead(ROCKER_OFFSET_t offset)
+  123          {
+C251 COMPILER V5.60.0,  remote_control                                                     28/11/25  17:21:30  PAGE 3   
 
-  124   1      }
-  125          
+  124   1        return rc_ctrl.rocker.value[offset];
+  125   1      }
   126          
   127          
-  128          //中断回调函数
-  129          static uint32_t timeline = 0; //时间线
-  130          uint8_t Clear_Time = 0; //遥控器断开清零计数
-  131          float Offset = 0; //异步传输偏移量
-  132          void TM4_Isr() interrupt 20
-  133          {
-  134   1        PIT_Timer_Clear(TIM4);
-  135   1        timeline++;
-  136   1        if((timeline % 20) == 0) //20ms 发送一次
-  137   1        {
-  138   2          RCPacket_Send();
-  139   2        }
-  140   1        Clear_Time++;
-  141   1        if(Clear_Time >= 50) //50ms未接收到遥控器数据则清除所有信息
-  142   1        {
-  143   2          Clear_Time = 0;
-  144   2          memset(&rc_ctrl, 0, sizeof(rc_ctrl));
-  145   2          rc_ctrl.key.value |= 1 << KEY_RCDISCONNECTED;
-  146   2        }
-  147   1      }
-  148          //发送数据指针
-  149          SendPack_t* get_sendpack_point(void)
-  150          {
-  151   1        return &sendpack;
-  152   1      }
+  128          
+  129          //中断回调函数
+  130          static uint32_t timeline = 0; //时间线
+  131          uint8_t Clear_Time = 0; //遥控器断开清零计数
+  132          float Offset = 0; //异步传输偏移量
+  133          void TM4_Isr() interrupt 20
+  134          {
+  135   1        PIT_Timer_Clear(TIM4);
+  136   1        timeline++;
+  137   1        if((timeline % 20) == 0) //20ms 发送一次
+  138   1        {
+  139   2          RCPacket_Send();
+  140   2        }
+  141   1        Clear_Time++;
+  142   1        if(Clear_Time >= 50) //50ms未接收到遥控器数据则清除所有信息
+  143   1        {
+  144   2          Clear_Time = 0;
+  145   2          memset(&rc_ctrl, 0, sizeof(rc_ctrl));
+  146   2          rc_ctrl.key.value |= 1 << KEY_RCDISCONNECTED;
+  147   2        }
+  148   1      }
+  149          //发送数据指针
+  150          SendPack_t* get_sendpack_point(void)
+  151          {
+  152   1        return &sendpack;
+  153   1      }
 
 
 Module Information          Static   Overlayable

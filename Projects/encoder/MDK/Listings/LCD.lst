@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  LCD                                                                23/11/25  20:59:45  PAGE 1   
+C251 COMPILER V5.60.0,  LCD                                                                28/11/25  13:08:23  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE LCD
@@ -66,7 +66,7 @@ stmt  level    source
    55          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
    56          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
    57          0X00,0X01,0X01,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
-C251 COMPILER V5.60.0,  LCD                                                                23/11/25  20:59:45  PAGE 2   
+C251 COMPILER V5.60.0,  LCD                                                                28/11/25  13:08:23  PAGE 2   
 
    58          0X01,0X01,0X01,0X00,0X00,0X00,0X00,0X00,0X00,0X01,0X01,0X01,0X00,0X00,0X00,0X00,
    59          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X01,0X01,0X01,0X01,
@@ -134,7 +134,7 @@ stmt  level    source
   116           * @brief  内部调用，无需关心
   117          *********************************************************************************************************
              -******************/
-C251 COMPILER V5.60.0,  LCD                                                                23/11/25  20:59:45  PAGE 3   
+C251 COMPILER V5.60.0,  LCD                                                                28/11/25  13:08:23  PAGE 3   
 
   118          void LCD_Fill(unsigned char bmp_data)
   119          {
@@ -202,7 +202,7 @@ stmt  level    source
   175   1      }
   176           /*******************************************************************************************************
              -*******************
-C251 COMPILER V5.60.0,  LCD                                                                23/11/25  20:59:45  PAGE 4   
+C251 COMPILER V5.60.0,  LCD                                                                28/11/25  13:08:23  PAGE 4   
 
   177           * @brief  OLED初始化
   178           * @exampleCode
@@ -270,7 +270,7 @@ stmt  level    source
   238           * @endcode
   239           * @param[in]  x    x起始坐标
   240           * @param[in]  y    y起始坐标(行数)             
-C251 COMPILER V5.60.0,  LCD                                                                23/11/25  20:59:45  PAGE 5   
+C251 COMPILER V5.60.0,  LCD                                                                28/11/25  13:08:23  PAGE 5   
 
   241           * @param[in]  ch[] 字符串
   242          *********************************************************************************************************
@@ -338,7 +338,7 @@ stmt  level    source
   299   1        tmp[4]=(unsigned char)(num%10+0x30);
   300   1        tmp[3]=(unsigned char)(num/10%10+0x30);
   301   1        tmp[2]=(unsigned char)(num/100%10+0x30);
-C251 COMPILER V5.60.0,  LCD                                                                23/11/25  20:59:45  PAGE 6   
+C251 COMPILER V5.60.0,  LCD                                                                28/11/25  13:08:23  PAGE 6   
 
   302   1        tmp[1]=(unsigned char)(num/1000%10+0x30);
   303   1        tmp[0]=(unsigned char)(num/10000%10+0x30);
@@ -406,7 +406,7 @@ stmt  level    source
   363   1        LCD_P6x8Str(x,y,tmp);
   364   1      }
 
-C251 COMPILER V5.60.0,  LCD                                                                23/11/25  20:59:45  PAGE 7   
+C251 COMPILER V5.60.0,  LCD                                                                28/11/25  13:08:23  PAGE 7   
 
 
 Module Information          Static   Overlayable

@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  CNU_PIE_FIFO                                                       15/11/25  22:32:27  PAGE 1   
+C251 COMPILER V5.60.0,  CNU_PIE_FIFO                                                       28/11/25  12:51:00  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE CNU_PIE_FIFO
@@ -66,7 +66,7 @@ stmt  level    source
    49          void fifo_head_offset (fifo_struct *fifo, uint32_t offset)
    50          {
    51   1          fifo->head += offset;
-C251 COMPILER V5.60.0,  CNU_PIE_FIFO                                                       15/11/25  22:32:27  PAGE 2   
+C251 COMPILER V5.60.0,  CNU_PIE_FIFO                                                       28/11/25  12:51:00  PAGE 2   
 
    52   1      
    53   1          while(fifo->max <= fifo->head)                                              // 如果范围超过则减缓冲区
@@ -134,7 +134,7 @@ stmt  level    source
   106          // Sample usage:                if(fifo_write_buffer(&fifo,data,32)!=FIFO_SUCCESS) while(1);
   107          //-------------------------------------------------------------------------------------------------------
              -------------
-C251 COMPILER V5.60.0,  CNU_PIE_FIFO                                                       15/11/25  22:32:27  PAGE 3   
+C251 COMPILER V5.60.0,  CNU_PIE_FIFO                                                       28/11/25  12:51:00  PAGE 3   
 
   108          fifo_state_enum fifo_write_buffer (fifo_struct *fifo, uint8_t *dat, uint32_t length)
   109          {
@@ -202,7 +202,7 @@ stmt  level    source
   162   1          {
   163   2              if(NULL != dat)    memcpy(dat, &fifo->buffer[fifo->end], (uint16_t)*length);      // 一次性读取完
              -毕
-C251 COMPILER V5.60.0,  CNU_PIE_FIFO                                                       15/11/25  22:32:27  PAGE 4   
+C251 COMPILER V5.60.0,  CNU_PIE_FIFO                                                       28/11/25  12:51:00  PAGE 4   
 
   164   2          }
   165   1          else

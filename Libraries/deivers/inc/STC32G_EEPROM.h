@@ -20,9 +20,7 @@
 #define		IAP_READ()		IAP_CMD = 1		//IAP��������
 #define		IAP_WRITE()		IAP_CMD = 2		//IAPд������
 #define		IAP_ERASE()		IAP_CMD = 3		//IAP��������
-
-sbit        IAPEN       =           IAP_CONTR^7;
-
+    sbit    IAPEN       =           IAP_CONTR^7;
 #define	IAP_ENABLE()		IAPEN = 1; IAP_TPS = FOSC / 1000000
 #define	IAP_DISABLE()		IAP_CONTR = 0; IAP_CMD = 0; IAP_TRIG = 0; IAP_ADDRH = 0xff; IAP_ADDRL = 0xff
 

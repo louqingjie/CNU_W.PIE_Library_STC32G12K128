@@ -17,7 +17,8 @@ void remote_control_init(void)
 {  
   //Ci24R1初始化
   while(!NRF24L01_Init());
-  
+  // NRF24L01_Init();
+
   memset(&sendpack, 0, sizeof(SendPack_t));
   
   //初始化结束开启中断

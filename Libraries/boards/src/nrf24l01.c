@@ -17,17 +17,17 @@ typedef enum
 uint8_t Channal = 0;
 int RecFPS = 0;
 
-#define CHANAL          1                              //ÆµµÀÑ¡Ôñ
+#define CHANAL          52                              //Æµï¿½ï¿½Ñ¡ï¿½ï¿½
 
-uint8_t TX_ADDRESS[5] = {'R', 'C', 'T', 'L', 0 }; //·¢ËÍµØÖ·
-uint8_t RX_ADDRESS[5] = {'R', 'C', 'T', 'L', 0 }; //½ÓÊÕµØÖ·
+uint8_t TX_ADDRESS[5] = {'R', 'C', 'T', 'L', 0 }; //ï¿½ï¿½ï¿½Íµï¿½Ö·
+uint8_t RX_ADDRESS[5] = {'R', 'C', 'T', 'L', 0 }; //ï¿½ï¿½ï¿½Õµï¿½Ö·
 
 uint8_t TX_Buff[TX_PACKET_LENTH];  
 uint8_t RX_Buff[RX_PACKET_LENTH];
 
-/******************************** NRF24L01+ ¼Ä´æÆ÷ÃüÁî ºê¶¨Òå***************************************/
+/******************************** NRF24L01+ ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ê¶¨ï¿½ï¿½***************************************/
 
-// SPI(nRF24L01) commands , NRFµÄSPIÃüÁîºê¶¨Òå£¬Ïê¼ûNRF¹¦ÄÜÊ¹ÓÃÎÄµµ
+// SPI(nRF24L01) commands , NRFï¿½ï¿½SPIï¿½ï¿½ï¿½ï¿½ê¶¨ï¿½å£¬ï¿½ï¿½ï¿½NRFï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½Äµï¿½
 #define NRF_READ_REG    0x00    // Define read command to register
 #define NRF_WRITE_REG   0x20    // Define write command to register
 #define RD_RX_PLOAD     0x61    // Define RX payload register address
@@ -37,12 +37,12 @@ uint8_t RX_Buff[RX_PACKET_LENTH];
 #define REUSE_TX_PL     0xE3    // Define reuse TX payload register command
 #define _NOP            0xFF    // Define No Operation, might be used to read status register
 
-//µ¥ÉäÆµ 
+//ï¿½ï¿½ï¿½ï¿½Æµ 
 #define CE_ON       0x70
 #define CE_OFF      0x71
 #define FEATURE     0x1D  //  Feature Register address
 
-// SPI(nRF24L01) registers(addresses) £¬NRF24L01 Ïà¹Ø¼Ä´æÆ÷µØÖ·µÄºê¶¨Òå
+// SPI(nRF24L01) registers(addresses) ï¿½ï¿½NRF24L01 ï¿½ï¿½Ø¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½Äºê¶¨ï¿½ï¿½
 #define CONFIG      0x00        // 'Config' register address
 #define EN_AA       0x01        // 'Enable Auto Acknowledgment' register address
 #define EN_RXADDR   0x02        // 'Enabled RX addresses' register address
@@ -69,30 +69,30 @@ uint8_t RX_Buff[RX_PACKET_LENTH];
 #define FIFO_STATUS 0x17        // 'FIFO Status Register' register address
 
 
-//¼¸¸öÖØÒªµÄ×´Ì¬±ê¼Ç
-#define TX_FULL     0x01        //TX FIFO ¼Ä´æÆ÷Âú±êÖ¾¡£ 1 Îª Âú£¬0Îª ²»Âú
-#define MAX_RT      0x10        //´ïµ½×î´óÖØ·¢´ÎÊýÖÐ¶Ï±êÖ¾Î»
-#define TX_DS       0x20        //·¢ËÍÍê³ÉÖÐ¶Ï±êÖ¾Î»
-#define RX_DR       0x40        //½ÓÊÕµ½Êý¾ÝÖÐ¶Ï±êÖ¾Î»
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½
+#define TX_FULL     0x01        //TX FIFO ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¾ï¿½ï¿½ 1 Îª ï¿½ï¿½ï¿½ï¿½0Îª ï¿½ï¿½ï¿½ï¿½
+#define MAX_RT      0x10        //ï¿½ïµ½ï¿½ï¿½ï¿½ï¿½Ø·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶Ï±ï¿½Ö¾Î»
+#define TX_DS       0x20        //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶Ï±ï¿½Ö¾Î»
+#define RX_DR       0x40        //ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶Ï±ï¿½Ö¾Î»
 
 
 
-//ÄÚ²¿¼Ä´æÆ÷²Ù×÷º¯ÊýÉùÃ÷
+//ï¿½Ú²ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 void nrf_writereg(uint8_t reg, uint8_t dat);
 uint8_t nrf_readreg(uint8_t reg);
 
 void nrf_writebuf(uint8_t reg , uint8_t *pBuf, uint16_t len) reentrant;
 void nrf_readbuf (uint8_t reg, uint8_t *pBuf, uint16_t  len) reentrant;
 
-void nrf_rx_mode(void);    //½øÈë½ÓÊÕÄ£Ê½
-void nrf_tx_mode(void);    //½øÈë·¢ËÍÄ£Ê½
-uint8_t nrf_link_check(void);   //¼ì²âNRF24L01+Óëµ¥Æ¬»úÊÇ·ñÍ¨ÐÅÕý³£
+void nrf_rx_mode(void);    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½
+void nrf_tx_mode(void);    //ï¿½ï¿½ï¿½ë·¢ï¿½ï¿½Ä£Ê½
+uint8_t nrf_link_check(void);   //ï¿½ï¿½ï¿½NRF24L01+ï¿½ëµ¥Æ¬ï¿½ï¿½ï¿½Ç·ï¿½Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 /*!
-*  @brief      NRF24L01+ Ä£Ê½±ê¼Ç
+*  @brief      NRF24L01+ Ä£Ê½ï¿½ï¿½ï¿½
 */
 volatile uint8_t  nrf_mode = NOT_INIT;
 
-// RF2G4³õÊ¼»¯
+// RF2G4ï¿½ï¿½Ê¼ï¿½ï¿½
 //------------------------------------------------------------------------------------------
 uint8_t NRF24L01_Init(void)
 {
@@ -116,40 +116,40 @@ uint8_t NRF24L01_Init(void)
 	RX_ADDRESS[4] = Channal;
 	TX_ADDRESS[4] = Channal;
 	
-	//2401¼Ä´æÆ÷ÉèÖÃ
+	//2401ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	RF2G4_CE_LOW; 						 
 	
-	nrf_writereg(NRF_WRITE_REG + SETUP_AW, ADR_WIDTH - 2);          //ÉèÖÃµØÖ·³¤¶ÈÎª TX_ADR_WIDTH
+	nrf_writereg(NRF_WRITE_REG + SETUP_AW, ADR_WIDTH - 2);          //ï¿½ï¿½ï¿½Ãµï¿½Ö·ï¿½ï¿½ï¿½ï¿½Îª TX_ADR_WIDTH
 	
-  nrf_writereg(NRF_WRITE_REG + RF_CH, CHANAL);                    //ÉèÖÃRFÍ¨µÀÎªCHANAL
+  nrf_writereg(NRF_WRITE_REG + RF_CH, CHANAL);                    //ï¿½ï¿½ï¿½ï¿½RFÍ¨ï¿½ï¿½ÎªCHANAL
 	
 	/*            | NRF24L01      | SI24R1        |Ci24R1 
   *     1Mbps   |  0x06   0dBm  |  0x07    7dBm | 0x07  11dBm
   *     250kbps |  0x26   0dBm  |  0x27    7dBm | 0x27  11dBm
   */  
-  nrf_writereg(NRF_WRITE_REG + RF_SETUP, 0x06);                   //ÉèÖÃTX·¢Éä²ÎÊý
+  nrf_writereg(NRF_WRITE_REG + RF_SETUP, 0x06);                   //ï¿½ï¿½ï¿½ï¿½TXï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
- //nrf_writereg(NRF_WRITE_REG + FEATURE, 0x04);	 									//Ê¹ÄÜ¶¯Ì¬¸ºÔØ SI24R1 Ci24R1 
+ //nrf_writereg(NRF_WRITE_REG + FEATURE, 0x04);	 									//Ê¹ï¿½Ü¶ï¿½Ì¬ï¿½ï¿½ï¿½ï¿½ SI24R1 Ci24R1 
   
-  nrf_writereg(NRF_WRITE_REG + EN_AA, 0x01);                      //Ê¹ÄÜÍ¨µÀ0µÄ×Ô¶¯Ó¦´ð
+  nrf_writereg(NRF_WRITE_REG + EN_AA, 0x01);                      //Ê¹ï¿½ï¿½Í¨ï¿½ï¿½0ï¿½ï¿½ï¿½Ô¶ï¿½Ó¦ï¿½ï¿½
   
-  nrf_writereg(NRF_WRITE_REG + EN_RXADDR, 0x01);                  //Ê¹ÄÜÍ¨µÀ0µÄ½ÓÊÕµØÖ·
+  nrf_writereg(NRF_WRITE_REG + EN_RXADDR, 0x01);                  //Ê¹ï¿½ï¿½Í¨ï¿½ï¿½0ï¿½Ä½ï¿½ï¿½Õµï¿½Ö·
   
-  //RXÄ£Ê½ÅäÖÃ
-  nrf_writebuf(NRF_WRITE_REG + RX_ADDR_P0, RX_ADDRESS, ADR_WIDTH); //Ð´RX0½ÚµãµØÖ·
+  //RXÄ£Ê½ï¿½ï¿½ï¿½ï¿½
+  nrf_writebuf(NRF_WRITE_REG + RX_ADDR_P0, RX_ADDRESS, ADR_WIDTH); //Ð´RX0ï¿½Úµï¿½ï¿½Ö·
 	
-  nrf_writereg(NRF_WRITE_REG + RX_PW_P0, RX_PACKET_LENTH);         //Ñ¡ÔñÍ¨µÀ0µÄÓÐÐ§Êý¾Ý¿í¶È
+  nrf_writereg(NRF_WRITE_REG + RX_PW_P0, RX_PACKET_LENTH);         //Ñ¡ï¿½ï¿½Í¨ï¿½ï¿½0ï¿½ï¿½ï¿½ï¿½Ð§ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½
 	
-  nrf_writereg(FLUSH_RX, _NOP);                                //Çå³ýRX FIFO¼Ä´æÆ÷
+  nrf_writereg(FLUSH_RX, _NOP);                                //ï¿½ï¿½ï¿½RX FIFOï¿½Ä´ï¿½ï¿½ï¿½
   
-  //TXÄ£Ê½ÅäÖÃ
-  nrf_writebuf(NRF_WRITE_REG + TX_ADDR, TX_ADDRESS, ADR_WIDTH); 	//Ð´TX½ÚµãµØÖ·
+  //TXÄ£Ê½ï¿½ï¿½ï¿½ï¿½
+  nrf_writebuf(NRF_WRITE_REG + TX_ADDR, TX_ADDRESS, ADR_WIDTH); 	//Ð´TXï¿½Úµï¿½ï¿½Ö·
   
-  nrf_writereg(NRF_WRITE_REG + SETUP_RETR, 0x05);                 //ÉèÖÃ×Ô¶¯ÖØ·¢¼ä¸ôÊ±¼ä:250us; ×î´ó×Ô¶¯ÖØ·¢´ÎÊý:10´Î
+  nrf_writereg(NRF_WRITE_REG + SETUP_RETR, 0x05);                 //ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½Ø·ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½:250us; ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½Ø·ï¿½ï¿½ï¿½ï¿½ï¿½:10ï¿½ï¿½
   
-  nrf_writereg(FLUSH_TX, _NOP);                                    //Çå³ýTX FIFO¼Ä´æÆ÷
+  nrf_writereg(FLUSH_TX, _NOP);                                    //ï¿½ï¿½ï¿½TX FIFOï¿½Ä´ï¿½ï¿½ï¿½
   
-  nrf_rx_mode();                                                  //Ä¬ÈÏ½øÈë½ÓÊÕÄ£Ê½
+  nrf_rx_mode();                                                  //Ä¬ï¿½Ï½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½
 	
 	RF2G4_CE_HIGH; 		
 	
@@ -157,61 +157,61 @@ uint8_t NRF24L01_Init(void)
 }
 
 
-// ¼ì²âNRF24L01+ÓëMCUÊÇ·ñÕý³£Á¬½Ó
-// return = 0:³É¹¦,	1:Ê§°Ü
+// ï¿½ï¿½ï¿½NRF24L01+ï¿½ï¿½MCUï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+// return = 0:ï¿½É¹ï¿½,	1:Ê§ï¿½ï¿½
 //---------------------------------------------------------------------------------------------------
 uint8_t nrf_link_check(void)
 {
-#define NRF_CHECH_DATA  0x06        //´ËÖµÎªÐ£ÑéÊý¾ÝÊ±Ê¹ÓÃ£¬¿ÉÐÞ¸ÄÎªÆäËûÖµ
+#define NRF_CHECH_DATA  0x06        //ï¿½ï¿½ÖµÎªÐ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±Ê¹ï¿½Ã£ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½Îªï¿½ï¿½ï¿½ï¿½Öµ
   
   uint8_t reg;
   
   uint8_t buff[5] = {NRF_CHECH_DATA, NRF_CHECH_DATA, NRF_CHECH_DATA, NRF_CHECH_DATA, NRF_CHECH_DATA};
   uint8_t i;
-  //Ð´ÈëÐ£ÑéÊý¾Ý
+  //Ð´ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
   reg = NRF_WRITE_REG + TX_ADDR; 
 	
   RF2G4_CE_LOW;
 	
-  nrf_writebuf(reg ,buff, 5);//Ð´ÈëÐ£ÑéÊý¾Ý
+  nrf_writebuf(reg ,buff, 5);//Ð´ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
   
-  //¶ÁÈ¡Ð£ÑéÊý¾Ý
+  //ï¿½ï¿½È¡Ð£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
   reg = TX_ADDR;
-  nrf_readbuf(reg ,buff, 5);//¶ÁÈ¡Ð£ÑéÊý¾Ý
+  nrf_readbuf(reg ,buff, 5);//ï¿½ï¿½È¡Ð£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	
   RF2G4_CE_HIGH;
-  /*±È½Ï*/
+  /*ï¿½È½ï¿½*/
   for(i = 0; i < 5; i++)
   {
     if(buff[i] != NRF_CHECH_DATA)
     {
-      return 0;          //MCUÓëNRF²»Õý³£Á¬½Ó
+      return 0;          //MCUï¿½ï¿½NRFï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     }
   }
-  return 1 ;             //MCUÓëNRF³É¹¦Á¬½Ó
+  return 1 ;             //MCUï¿½ï¿½NRFï¿½É¹ï¿½ï¿½ï¿½ï¿½ï¿½
 }
 
 
 /*!
-*  @brief      NRF24L01+½øÈë½ÓÊÕÄ£Ê½
+*  @brief      NRF24L01+ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½
 *  @since      v5.0
 */
 void nrf_rx_mode(void)
 {
   RF2G4_CE_LOW;
 	
-  nrf_writereg(NRF_WRITE_REG + EN_AA, 0x01);          //Ê¹ÄÜÍ¨µÀ0µÄ×Ô¶¯Ó¦´ð
+  nrf_writereg(NRF_WRITE_REG + EN_AA, 0x01);          //Ê¹ï¿½ï¿½Í¨ï¿½ï¿½0ï¿½ï¿½ï¿½Ô¶ï¿½Ó¦ï¿½ï¿½
   
-  nrf_writereg(NRF_WRITE_REG + EN_RXADDR, 0x01);      //Ê¹ÄÜÍ¨µÀ0µÄ½ÓÊÕµØÖ·
+  nrf_writereg(NRF_WRITE_REG + EN_RXADDR, 0x01);      //Ê¹ï¿½ï¿½Í¨ï¿½ï¿½0ï¿½Ä½ï¿½ï¿½Õµï¿½Ö·
   
-  nrf_writebuf(NRF_WRITE_REG + RX_ADDR_P0, RX_ADDRESS, ADR_WIDTH); //Ð´RX½ÚµãµØÖ·
+  nrf_writebuf(NRF_WRITE_REG + RX_ADDR_P0, RX_ADDRESS, ADR_WIDTH); //Ð´RXï¿½Úµï¿½ï¿½Ö·
 	
-  nrf_writereg(NRF_WRITE_REG + CONFIG, 0x0B | (IS_CRC16 << 2));       //ÅäÖÃ»ù±¾¹¤×÷Ä£Ê½µÄ²ÎÊý;PWR_UP,EN_CRC,16BIT_CRC,½ÓÊÕÄ£Ê½
+  nrf_writereg(NRF_WRITE_REG + CONFIG, 0x0B | (IS_CRC16 << 2));       //ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½ï¿½Ä²ï¿½ï¿½ï¿½;PWR_UP,EN_CRC,16BIT_CRC,ï¿½ï¿½ï¿½ï¿½Ä£Ê½
   
-  /* Çå³ýÖÐ¶Ï±êÖ¾*/
+  /* ï¿½ï¿½ï¿½ï¿½Ð¶Ï±ï¿½Ö¾*/
   nrf_writereg(NRF_WRITE_REG + STATUS, _NOP);
   
-  nrf_writereg(FLUSH_RX, _NOP);                    //Çå³ýRX FIFO¼Ä´æÆ÷
+  nrf_writereg(FLUSH_RX, _NOP);                    //ï¿½ï¿½ï¿½RX FIFOï¿½Ä´ï¿½ï¿½ï¿½
   
   RF2G4_CE_HIGH; 
   
@@ -219,18 +219,18 @@ void nrf_rx_mode(void)
 }
 
 /*!
-*  @brief      NRF24L01+½øÈë·¢ËÍÄ£Ê½
+*  @brief      NRF24L01+ï¿½ï¿½ï¿½ë·¢ï¿½ï¿½Ä£Ê½
 *  @since      v5.0
 */
 void nrf_tx_mode(void)
 {
   RF2G4_CE_LOW;           			
   
-  nrf_writebuf(NRF_WRITE_REG + TX_ADDR, TX_ADDRESS, ADR_WIDTH); //Ð´TX½ÚµãµØÖ·
+  nrf_writebuf(NRF_WRITE_REG + TX_ADDR, TX_ADDRESS, ADR_WIDTH); //Ð´TXï¿½Úµï¿½ï¿½Ö·
   
-  nrf_writebuf(NRF_WRITE_REG + RX_ADDR_P0, RX_ADDRESS, ADR_WIDTH); //ÉèÖÃRX½ÚµãµØÖ· ,Ö÷ÒªÎªÁËÊ¹ÄÜACK
+  nrf_writebuf(NRF_WRITE_REG + RX_ADDR_P0, RX_ADDRESS, ADR_WIDTH); //ï¿½ï¿½ï¿½ï¿½RXï¿½Úµï¿½ï¿½Ö· ,ï¿½ï¿½ÒªÎªï¿½ï¿½Ê¹ï¿½ï¿½ACK
 	
-  nrf_writereg(NRF_WRITE_REG + CONFIG, 0x0A | (IS_CRC16 << 2)); //ÅäÖÃ»ù±¾¹¤×÷Ä£Ê½µÄ²ÎÊý;PWR_UP,EN_CRC,16BIT_CRC,·¢ÉäÄ£Ê½,¿ªÆôËùÓÐÖÐ¶Ï
+  nrf_writereg(NRF_WRITE_REG + CONFIG, 0x0A | (IS_CRC16 << 2)); //ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½ï¿½Ä²ï¿½ï¿½ï¿½;PWR_UP,EN_CRC,16BIT_CRC,ï¿½ï¿½ï¿½ï¿½Ä£Ê½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½
   
   RF2G4_CE_HIGH;   
 	
@@ -239,18 +239,18 @@ void nrf_tx_mode(void)
 	Ms_Delay(25);
 }
 
-//·¢ËÍ²»ÄÜÌ«¿ì
+//ï¿½ï¿½ï¿½Í²ï¿½ï¿½ï¿½Ì«ï¿½ï¿½
 void nrf_tx_packet(uint8_t* txbuf, uint8_t len)
 {
 	uint8_t crc = 0;
 	int i ;
 	if((txbuf == 0) || len <= 0)return;
-  TX_Buff[0] = len + 1; //Ö¡Í· ×Ö½Ú³¤¶È
-	memcpy(TX_Buff + 1, txbuf, len); //»ñÈ¡Êý¾Ý
+  TX_Buff[0] = len + 1; //Ö¡Í· ï¿½Ö½Ú³ï¿½ï¿½ï¿½
+	memcpy(TX_Buff + 1, txbuf, len); //ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½
 	for(i = 0; i < len; i++)
 		crc += *(txbuf + i);
-	TX_Buff[len + 1] = crc; //Ö¡Î²Ð£Ñé
-	//·¢ËÍ
+	TX_Buff[len + 1] = crc; //Ö¡Î²Ð£ï¿½ï¿½
+	//ï¿½ï¿½ï¿½ï¿½
   if( nrf_mode != TX_MODE)
   {
     nrf_tx_mode();
@@ -264,26 +264,26 @@ void nrf_tx_packet(uint8_t* txbuf, uint8_t len)
 void nrf_handler(void)
 {
   uint8_t state;
-  /*¶ÁÈ¡status¼Ä´æÆ÷µÄÖµ  */
+  /*ï¿½ï¿½È¡statusï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Öµ  */
 	//RF2G4_CE_LOW;
   state = nrf_readreg(STATUS);
 
-  /* Çå³ýÖÐ¶Ï±êÖ¾*/
+  /* ï¿½ï¿½ï¿½ï¿½Ð¶Ï±ï¿½Ö¾*/
   nrf_writereg(NRF_WRITE_REG + STATUS, state);
   //RF2G4_CE_HIGH; 
-  if(state & RX_DR) //½ÓÊÕµ½Êý¾Ý
+  if(state & RX_DR) //ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½
   { 
-    //¶ÁÈ¡Êý¾Ý²¢½â°ü
+    //ï¿½ï¿½È¡ï¿½ï¿½ï¿½Ý²ï¿½ï¿½ï¿½ï¿½
     RF2G4_CE_LOW;
     nrf_readbuf(RD_RX_PLOAD, RX_Buff, RX_PACKET_LENTH); 
 		Rc_unpack_data(RX_Buff);
     RF2G4_CE_HIGH;
   }
   
-  if(state & TX_DS) //·¢ËÍÍêÊý¾Ý
+  if(state & TX_DS) //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
   {
 		//RF2G4_CE_LOW;
-    nrf_writereg(FLUSH_TX, _NOP);      //Çå³ýTX FIFO
+    nrf_writereg(FLUSH_TX, _NOP);      //ï¿½ï¿½ï¿½TX FIFO
 		//RF2G4_CE_HIGH;
     if( nrf_mode != RX_MODE)
     {
@@ -291,24 +291,24 @@ void nrf_handler(void)
     }
   }
   
-  if(state & MAX_RT)      //·¢ËÍ³¬Ê±
+  if(state & MAX_RT)      //ï¿½ï¿½ï¿½Í³ï¿½Ê±
   {
 		//RF2G4_CE_LOW;
-    nrf_writereg(FLUSH_TX, _NOP);   //Çå³ýTX FIFO¼Ä´æÆ÷
+    nrf_writereg(FLUSH_TX, _NOP);   //ï¿½ï¿½ï¿½TX FIFOï¿½Ä´ï¿½ï¿½ï¿½
 		//RF2G4_CE_HIGH;
-    if( nrf_mode != RX_MODE)       //½øÈë ½ÓÊÕ×´Ì¬
+    if( nrf_mode != RX_MODE)       //ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½×´Ì¬
     {
       nrf_rx_mode();
     }                                  
   }
   
-  if(state & TX_FULL) //TX FIFO Âú
+  if(state & TX_FULL) //TX FIFO ï¿½ï¿½
   {
     
   }
 }
 
-//Êý¾Ý°üÑ¹Ëõºó·¢ËÍ
+//ï¿½ï¿½ï¿½Ý°ï¿½Ñ¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 uint8_t label = 0;
 void RCPacket_Send(void)
 {
@@ -316,10 +316,10 @@ void RCPacket_Send(void)
 	uint8_t crc = 0;
   SendPack_t* pack_t = get_sendpack_point();
   int number = 0;
-  for(i = label; i < 3 + label; i++) //°üÑ¹Ëõ
+  for(i = label; i < 3 + label; i++) //ï¿½ï¿½Ñ¹ï¿½ï¿½
   {
     int pot = number * 10 + 1;
-    if(pack_t->Mode[i] == 1) //×Ö·û´®+Êý×Ö
+    if(pack_t->Mode[i] == 1) //ï¿½Ö·ï¿½ï¿½ï¿½+ï¿½ï¿½ï¿½ï¿½
     {
       TX_Buff[pot] = 0;
       TX_Buff[pot] |= (pack_t->line[i].Namelenth << 4) | (pack_t->line[i].Row << 1) | (pack_t->line[i].Size);
@@ -327,23 +327,23 @@ void RCPacket_Send(void)
       memcpy(TX_Buff + pot + 6, pack_t->line[i].Number, sizeof(float));
       number ++;
     }
-    else if(pack_t->Mode[i] == 2) //Êý×Ö+Êý×Ö
+    else if(pack_t->Mode[i] == 2) //ï¿½ï¿½ï¿½ï¿½+ï¿½ï¿½ï¿½ï¿½
     {
       TX_Buff[pot] = 1 << 7;
       TX_Buff[pot] |= (pack_t->line[i].Row << 1) | (pack_t->line[i].Size);
       memcpy(TX_Buff + pot + 1, pack_t->line[i].Number, 2 * sizeof(float)); 
       number ++;
     }
-    else if(pack_t->Mode[i] == 3) //ÇåÐÐ
+    else if(pack_t->Mode[i] == 3) //ï¿½ï¿½ï¿½ï¿½
     {
       TX_Buff[pot] = 0x70;
       TX_Buff[pot] |= (pack_t->line[i].Row << 1) | (pack_t->line[i].Size);
       number ++;
     }
     
-    pack_t->Mode[i] = 0; //»ñÈ¡Êý¾ÝºóÇå³þ±ê¼Ç
+    pack_t->Mode[i] = 0; //ï¿½ï¿½È¡ï¿½ï¿½ï¿½Ýºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
   }
-  if(number != 0) //°ü·¢ËÍ
+  if(number != 0) //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
   {
     TX_Buff[0] = number * 10 + 1; //Ö¡Í·
     crc = 0;
@@ -354,7 +354,7 @@ void RCPacket_Send(void)
     {
       nrf_tx_mode();
     }
-    //·¢ËÍ
+    //ï¿½ï¿½ï¿½ï¿½
     RF2G4_CE_LOW;
     nrf_writebuf(WR_TX_PLOAD, TX_Buff, TX_PACKET_LENTH);
     RF2G4_CE_HIGH;
@@ -363,40 +363,40 @@ void RCPacket_Send(void)
   else label = 3;
 }
 
-//----------------------SPIÐ´²Ù×÷----------------------------//
+//----------------------SPIÐ´ï¿½ï¿½ï¿½ï¿½----------------------------//
 void nrf_writereg(uint8_t reg, uint8_t dat)
 {
-	RF2G4_CSN_LOW;              // Ê¹ÄÜSPI´«Êä
+	RF2G4_CSN_LOW;              // Ê¹ï¿½ï¿½SPIï¿½ï¿½ï¿½ï¿½
 	
-	SPI_ReadWriteByte(reg);		 // ·¢ËÍ¼Ä´æÆ÷ºÅ
-	SPI_ReadWriteByte(dat);	  // Ð´Èë¼Ä´æÆ÷µÄÖµ
+	SPI_ReadWriteByte(reg);		 // ï¿½ï¿½ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+	SPI_ReadWriteByte(dat);	  // Ð´ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
 	
-	RF2G4_CSN_HIGH;              // ½ûÖ¹SPI´«Êä	 
+	RF2G4_CSN_HIGH;              // ï¿½ï¿½Ö¹SPIï¿½ï¿½ï¿½ï¿½	 
 }
 
 
 void nrf_writebuf(uint8_t reg, uint8_t *pBuf, uint16_t len) reentrant
 {
 	uint16_t i;
-	RF2G4_CSN_LOW;              // Ê¹ÄÜSPI´«Êä
+	RF2G4_CSN_LOW;              // Ê¹ï¿½ï¿½SPIï¿½ï¿½ï¿½ï¿½
 	
-	SPI_ReadWriteByte(reg);		// ·¢ËÍ¼Ä´æÆ÷ºÅ
+	SPI_ReadWriteByte(reg);		// ï¿½ï¿½ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
 	for(i = 0; i < len; i++)
 		SPI_ReadWriteByte(*(pBuf + i));
 	
-	RF2G4_CSN_HIGH;              // ½ûÖ¹SPI´«Êä	 
+	RF2G4_CSN_HIGH;              // ï¿½ï¿½Ö¹SPIï¿½ï¿½ï¿½ï¿½	 
 }
 
-//----------------------SPI¶Á²Ù×÷----------------------------//
+//----------------------SPIï¿½ï¿½ï¿½ï¿½ï¿½ï¿½----------------------------//
 uint8_t nrf_readreg(uint8_t reg)
 {
 	uint8_t value;
-	RF2G4_CSN_LOW;          			// Ê¹ÄÜSPI´«Êä		
+	RF2G4_CSN_LOW;          			// Ê¹ï¿½ï¿½SPIï¿½ï¿½ï¿½ï¿½		
 	
-	SPI_ReadWriteByte(reg);   			// ·¢ËÍ¼Ä´æÆ÷ºÅ
-	value = SPI_ReadWriteByte(0xFF);		// ¶ÁÈ¡¼Ä´æÆ÷ÄÚÈÝ
+	SPI_ReadWriteByte(reg);   			// ï¿½ï¿½ï¿½Í¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+	value = SPI_ReadWriteByte(0xFF);		// ï¿½ï¿½È¡ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	
-	RF2G4_CSN_HIGH;          			// ½ûÖ¹SPI´«Êä		
+	RF2G4_CSN_HIGH;          			// ï¿½ï¿½Ö¹SPIï¿½ï¿½ï¿½ï¿½		
 	
 	return value;
 }
@@ -404,54 +404,54 @@ uint8_t nrf_readreg(uint8_t reg)
 void nrf_readbuf(uint8_t reg, uint8_t *pBuf, uint16_t len) reentrant
 {
 	uint16_t i;
-	RF2G4_CSN_LOW;           			// Ê¹ÄÜSPI´«Êä
+	RF2G4_CSN_LOW;           			// Ê¹ï¿½ï¿½SPIï¿½ï¿½ï¿½ï¿½
 
-	SPI_ReadWriteByte(reg);		// ·¢ËÍ¼Ä´æÆ÷Öµ(Î»ÖÃ),²¢¶ÁÈ¡×´Ì¬Öµ
+	SPI_ReadWriteByte(reg);		// ï¿½ï¿½ï¿½Í¼Ä´ï¿½ï¿½ï¿½Öµ(Î»ï¿½ï¿½),ï¿½ï¿½ï¿½ï¿½È¡×´Ì¬Öµ
 
 	for(i = 0; i < len; i++)
-		*(pBuf + i) = SPI_ReadWriteByte(0xFF);	// ¶Á³öÊý¾Ý
+		*(pBuf + i) = SPI_ReadWriteByte(0xFF);	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-	RF2G4_CSN_HIGH;       				// ¹Ø±ÕSPI´«Êä
+	RF2G4_CSN_HIGH;       				// ï¿½Ø±ï¿½SPIï¿½ï¿½ï¿½ï¿½
 }
 		
 void P2_INT_ISR_Handler (void) interrupt P2INT_VECTOR
 {
-  GPIO_EXTI_Flag_Read(GPIO_P2);   //±êÖ¾Î»¸³Öµ+Çå¿Õ±êÖ¾Î»
+  GPIO_EXTI_Flag_Read(GPIO_P2);   //ï¿½ï¿½Ö¾Î»ï¿½ï¿½Öµ+ï¿½ï¿½Õ±ï¿½Ö¾Î»
 	if(Port_Exti_Flag[2])
 	{
 	GPIO_EXTI_Flag_Clear(GPIO_P2);
 	if(Port_Exti_Flag[2] & Port_Pin_0)
 	{
-		//P2.0ÖÐ¶Ï
+		//P2.0ï¿½Ð¶ï¿½
 	}
 	if(Port_Exti_Flag[2] & Port_Pin_1)
 	{
-		//P2.1ÖÐ¶Ï
+		//P2.1ï¿½Ð¶ï¿½
 	}
 	if(Port_Exti_Flag[2] & Port_Pin_2)
 	{
-		//P2.2ÖÐ¶Ï
+		//P2.2ï¿½Ð¶ï¿½
 	}
 	if(Port_Exti_Flag[2] & Port_Pin_3)
 	{
-		//P2.3ÖÐ¶Ï
+		//P2.3ï¿½Ð¶ï¿½
 	}
 	if(Port_Exti_Flag[2] & Port_Pin_4)
 	{
-		//P2.4ÖÐ¶Ï
+		//P2.4ï¿½Ð¶ï¿½
 	}
 	if(Port_Exti_Flag[2] & Port_Pin_5)
 	{
-		//P2.5ÖÐ¶Ï
+		//P2.5ï¿½Ð¶ï¿½
 	}
 	if(Port_Exti_Flag[2] & Port_Pin_6)
 	{
-		//P2.6ÖÐ¶Ï
+		//P2.6ï¿½Ð¶ï¿½
 		nrf_handler();
 	}
 	if(Port_Exti_Flag[2] & Port_Pin_7)
 	{
-		//P2.7ÖÐ¶Ï
+		//P2.7ï¿½Ð¶ï¿½
 	}
   } 
 }

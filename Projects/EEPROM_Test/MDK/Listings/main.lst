@@ -1,0 +1,166 @@
+C251 COMPILER V5.60.0,  main                                                               29/11/25  15:09:06  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE main
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\USER\src\main.c XSMALL BROWSE INCDIR(..\..\..\Librari
+                    -es\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG PRINT(.\Listings\main.lst
+                    -) TABS(2) OBJECT(.\Objects\main.obj) 
+
+stmt  level    source
+
+    1          #include "main.h"
+    2          #include "STC32G_EEPROM.h"
+    3          uint16_t memvalue, lastMemValue, countOfTimer;
+    4          uint8_t *addrOfMem;
+    5          void     Nixie_Show_One_Num(char num, uint8_t bitNum)
+    6          {
+    7   1          switch (num) {
+    8   2          case 0:
+    9   2              P0 = 0x3F;
+   10   2              break;
+   11   2          case 1:
+   12   2              P0 = 0x06;
+   13   2              break;
+   14   2          case 2:
+   15   2              P0 = 0x5b;
+   16   2              break;
+   17   2          case 3:
+   18   2              P0 = 0x4f;
+   19   2              break;
+   20   2          case 4:
+   21   2              P0 = 0x66;
+   22   2              break;
+   23   2          case 5:
+   24   2              P0 = 0x6d;
+   25   2              break;
+   26   2          case 6:
+   27   2              P0 = 0x7d;
+   28   2              break;
+   29   2          case 7:
+   30   2              P0 = 0x07;
+   31   2              break;
+   32   2          case 8:
+   33   2              P0 = 0xFF;
+   34   2              break;
+   35   2          case 9:
+   36   2              P0 = 0x6f;
+   37   2              break;
+   38   2          default:
+   39   2              break;
+   40   2          }
+   41   1          switch (bitNum) {
+   42   2          case 1:
+   43   2              P22 = 1;
+   44   2              P23 = 1;
+   45   2              P24 = 1;
+   46   2              break;
+   47   2          case 2:
+   48   2              P22 = 0;
+   49   2              P23 = 1;
+   50   2              P24 = 1;
+   51   2              break;
+   52   2          case 3:
+   53   2              P22 = 1;
+   54   2              P23 = 0;
+   55   2              P24 = 1;
+   56   2              break;
+   57   2          case 4:
+C251 COMPILER V5.60.0,  main                                                               29/11/25  15:09:06  PAGE 2   
+
+   58   2              P22 = 0;
+   59   2              P23 = 0;
+   60   2              P24 = 1;
+   61   2              break;
+   62   2          default:
+   63   2              break;
+   64   2          }
+   65   1      }
+   66          void Nixie_Show_Four_Num(uint16_t num)
+   67          {
+   68   1          if (num > 9999) {
+   69   2              num = 9999;
+   70   2          }
+   71   1          Nixie_Show_One_Num((int)num / 1000, 1);
+*** WARNING C188 IN LINE 71 OF ..\USER\src\main.c: 'parameter 1': value truncated
+   72   1          Ms_Delay(1);
+   73   1          Nixie_Show_One_Num((int)(num / 100) % 10, 2);
+*** WARNING C188 IN LINE 73 OF ..\USER\src\main.c: 'parameter 1': value truncated
+   74   1          Ms_Delay(1);
+   75   1          Nixie_Show_One_Num((int)(num / 10) % 10, 3);
+*** WARNING C188 IN LINE 75 OF ..\USER\src\main.c: 'parameter 1': value truncated
+   76   1          Ms_Delay(1);
+   77   1          Nixie_Show_One_Num((int)num % 10, 4);
+*** WARNING C188 IN LINE 77 OF ..\USER\src\main.c: 'parameter 1': value truncated
+   78   1          Ms_Delay(1);
+   79   1      }
+   80          
+   81          void main()
+   82          {
+   83   1          Board_Init();
+   84   1          addrOfMem = &memvalue;
+*** WARNING C91 IN LINE 84 OF ..\USER\src\main.c: '=': pointer to different objects
+*** WARNING C91 IN LINE 84 OF ..\USER\src\main.c: '&': pointer to different objects
+   85   1          EEPROM_read_n(0, addrOfMem, 2);
+   86   1          GPIO_Init(GPIO_P0, GPIO_Pin_All, GPIO_OUT_PP);
+   87   1          GPIO_Init(GPIO_P2, GPIO_Pin_All, GPIO_OUT_PP);
+   88   1          GPIO_EXTI_Init(GPIO_P3, GPIO_Pin_1, FALLING_EDGE);
+   89   1          GPIO_EXTI_Open(GPIO_P3, GPIO_Pin_1);
+   90   1          GPIO_EXTI_Init(GPIO_P3, GPIO_Pin_0, FALLING_EDGE);
+   91   1          GPIO_EXTI_Open(GPIO_P3, GPIO_Pin_0);
+   92   1          PIT_Timer_Ms(TIM0, 10);
+   93   1          while (1) {
+   94   2              if (GPIO_Read_Bit(GPIO_P3, GPIO_Pin_2) == 0) {
+   95   3                  memvalue++;
+   96   3                  while (GPIO_Read_Bit(GPIO_P3, GPIO_Pin_2) == 0)
+   97   3                      Nixie_Show_Four_Num(memvalue);
+   98   3              }
+   99   2              if (GPIO_Read_Bit(GPIO_P3, GPIO_Pin_3) == 0) {
+  100   3                  memvalue--;
+  101   3                  while (GPIO_Read_Bit(GPIO_P3, GPIO_Pin_3) == 0)
+  102   3                      Nixie_Show_Four_Num(memvalue);
+  103   3              }
+  104   2              Nixie_Show_Four_Num(memvalue);
+  105   2              if (countOfTimer >= 100) {
+  106   3                  countOfTimer = 0;
+  107   3                  memvalue++;
+  108   3              }
+  109   2              if (lastMemValue != memvalue) {
+  110   3                  EEPROM_SectorErase(0);
+  111   3                  EEPROM_write_n(0, addrOfMem, 2);
+  112   3              }
+  113   2              lastMemValue = memvalue;    
+  114   2          }
+  115   1      }
+  116          
+  117          void PIT_Activated() interrupt TMR0_VECTOR
+C251 COMPILER V5.60.0,  main                                                               29/11/25  15:09:06  PAGE 3   
+
+  118          {
+  119   1          PIT_Timer_Clear(TIM0);
+  120   1          countOfTimer++;
+  121   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       593     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        10     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  6 WARNING(S),  0 ERROR(S)

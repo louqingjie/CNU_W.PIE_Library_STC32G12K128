@@ -1,0 +1,433 @@
+C251 COMPILER V5.60.0,  LCD                                                                29/11/25  12:44:11  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE LCD
+OBJECT MODULE PLACED IN .\Objects\LCD.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\..\..\Libraries\boards\src\LCD.c XSMALL BROWSE INCDIR
+                    -(..\..\..\Libraries\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG PRINT(.\
+                    -Listings\LCD.lst) TABS(2) OBJECT(.\Objects\LCD.obj) 
+
+stmt  level    source
+
+    1          #include <math.h>
+    2          #include "intrins.h"
+    3          #include "LCD.h" 
+    4          #include "Font.h" 
+    5          #include "CNU_PIE_SPI.h"
+    6          const unsigned char gImage_Wpie[1024] = { /* 0X22,0X01,0X80,0X00,0X40,0X00, */
+    7          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+    8          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+    9          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   10          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   11          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   12          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   13          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   14          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   15          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0XE0,0XE0,0XE0,0XE0,0XF0,0XE0,0XC0,0X00,
+   16          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X80,0XE0,0XF0,0XE0,0XC0,0X80,0X00,0X00,
+   17          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X80,0XE0,0XE0,0XE0,0XC0,0XC0,0X00,0X00,0X00,
+   18          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   19          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   20          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   21          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   22          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   23          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X03,0X1F,0XFF,0XFF,0XFF,0XFF,0XFE,
+   24          0XF0,0X00,0X00,0X00,0X00,0X00,0X80,0XFC,0XFF,0XFF,0XFF,0XFF,0XFF,0XFF,0XFC,0XC0,
+   25          0X00,0X00,0X00,0X00,0X80,0XE0,0XFC,0XFF,0XFF,0XFF,0X3F,0X0F,0X03,0X00,0X00,0X00,
+   26          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   27          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   28          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   29          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X80,0XC0,0XC0,0XE0,0XE0,0XE0,0XE0,
+   30          0XE0,0XE0,0XC0,0XC0,0X80,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   31          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X03,0X1F,0X7F,0XFF,0XFF,
+   32          0XFF,0XFE,0XF8,0XC0,0XC0,0XFC,0XFF,0XFF,0XFF,0XFF,0X0F,0X1F,0XFF,0XFF,0XFF,0XFF,
+   33          0XFE,0XF0,0X80,0XFC,0XFF,0XFF,0XFF,0XFF,0X7F,0X0F,0X00,0X00,0X00,0X00,0X00,0X00,
+   34          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0XFC,0XFC,0XFC,0XFC,0X78,0X78,0XF0,
+   35          0XF0,0XE0,0XC0,0XC0,0XC0,0X80,0X00,0X00,0X00,0X00,0X20,0X30,0X38,0X7C,0X3C,0X3C,
+   36          0X08,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X80,0XC0,0XF8,0XFC,0XFC,0X3C,0X3C,0X1C,
+   37          0X0C,0X00,0X00,0X00,0X00,0X00,0X80,0XF0,0XFF,0XFF,0XFF,0XFF,0XFF,0XFF,0XFF,0XFF,
+   38          0XFF,0XFF,0XFF,0X7F,0X3F,0X1E,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   39          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X03,0X1F,
+   40          0XFF,0XFF,0XFF,0XFF,0XFF,0XFF,0XFF,0X1F,0X07,0X00,0X00,0X00,0X00,0X3F,0XFF,0XFF,
+   41          0XFF,0XFF,0XFF,0XFF,0XFF,0X7F,0X1F,0X03,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   42          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0XFF,0XFF,0XFF,0XFF,0XC0,0XE0,0XE0,
+   43          0XF1,0XF9,0X3F,0X1F,0X1F,0X0F,0X07,0X03,0X00,0X00,0X00,0X0C,0XFC,0XFC,0XF8,0XF0,
+   44          0X00,0X00,0X00,0X00,0X70,0XFC,0XFC,0XFF,0XFF,0XDF,0X33,0XF9,0XF8,0XF8,0XF0,0XE0,
+   45          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X01,0X01,0X03,0X03,0X03,
+   46          0X01,0X01,0X01,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   47          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   48          0X01,0X7F,0XFF,0XFF,0XFF,0X7F,0X0F,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X01,0X1F,
+   49          0XFF,0XFF,0XFF,0X1F,0X03,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0XC0,0XE0,
+   50          0XE0,0XF0,0XE0,0XE0,0X40,0X00,0X00,0X00,0X00,0XFF,0XFF,0XFF,0XEF,0X07,0X03,0X01,
+   51          0X01,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0XFF,0XFF,0XFF,0XFF,
+   52          0X00,0X00,0X00,0X00,0X00,0X00,0X01,0X03,0X07,0X0F,0X3F,0X7E,0XFD,0XF9,0XF0,0XE0,
+   53          0XC0,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   54          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   55          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   56          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   57          0X00,0X01,0X01,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+C251 COMPILER V5.60.0,  LCD                                                                29/11/25  12:44:11  PAGE 2   
+
+   58          0X01,0X01,0X01,0X00,0X00,0X00,0X00,0X00,0X00,0X01,0X01,0X01,0X00,0X00,0X00,0X00,
+   59          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X01,0X01,0X01,0X01,
+   60          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X01,0X01,0X01,
+   61          0X01,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   62          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   63          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   64          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   65          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   66          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   67          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   68          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   69          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   70          0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,0X00,
+   71          };
+   72           /*******************************************************************************************************
+             -*******************
+   73           * @brief  OLED写数据
+   74           * @brief  内部调用，无需关心
+   75          *********************************************************************************************************
+             -******************/
+   76          void LCD_WrDat(unsigned char data_t)
+   77          {
+   78   1        unsigned char i=8;
+   79   1        OLED_CS_Clear();
+   80   1        OLED_DC_Set();
+   81   1        OLED_CLK_Clear();
+   82   1        while(i--)
+   83   1        {
+   84   2          if(data_t&0x80)OLED_D1_Set();
+   85   2          else OLED_D1_Clear();
+   86   2          OLED_CLK_Set();
+   87   2      _nop_();
+   88   2          OLED_CLK_Clear();
+   89   2          data_t<<=1;
+   90   2        }
+   91   1        OLED_CS_Set();
+   92   1      }
+   93           /*******************************************************************************************************
+             -*******************
+   94           * @brief  OLED写命令
+   95           * @brief  内部调用，无需关心
+   96          *********************************************************************************************************
+             -******************/
+   97          void LCD_WrCmd(unsigned char cmd)
+   98          {
+   99   1        unsigned char i=8;
+  100   1        OLED_CS_Clear();
+  101   1        OLED_DC_Clear();
+  102   1        OLED_CLK_Clear();
+  103   1        while(i--)
+  104   1        {
+  105   2          if(cmd&0x80)OLED_D1_Set();
+  106   2          else OLED_D1_Clear();
+  107   2          OLED_CLK_Set();
+  108   2      _nop_();
+  109   2          OLED_CLK_Clear();
+  110   2          cmd<<=1;
+  111   2        }
+  112   1        OLED_CS_Set();
+  113   1      }
+  114           /*******************************************************************************************************
+             -*******************
+  115           * @brief  OLED图像填充
+  116           * @brief  内部调用，无需关心
+  117          *********************************************************************************************************
+             -******************/
+C251 COMPILER V5.60.0,  LCD                                                                29/11/25  12:44:11  PAGE 3   
+
+  118          void LCD_Fill(unsigned char bmp_data)
+  119          {
+  120   1        unsigned char y,x;
+  121   1        
+  122   1        for(y=0;y<8;y++)
+  123   1        {
+  124   2          LCD_WrCmd((uint8_t)(0xb0+y));
+  125   2          LCD_WrCmd(0x01);
+  126   2          LCD_WrCmd(0x10);
+  127   2          for(x=0;x<128;x++)
+  128   2            LCD_WrDat(bmp_data);
+  129   2        }
+  130   1      }
+  131           /*******************************************************************************************************
+             -*******************
+  132           * @brief  OLED画点
+  133           * @brief  内部调用，无需关心
+  134          *********************************************************************************************************
+             -******************/
+  135          void LCD_Set_Pos(uint8_t x, uint8_t y) 
+  136          {
+  137   1        LCD_WrCmd((uint8_t)(0xb0+y));
+  138   1        LCD_WrCmd(((x&0xf0)>>4)|0x10);
+  139   1        LCD_WrCmd((x&0x0f)|0x01);
+  140   1      }
+  141           /*******************************************************************************************************
+             -*******************
+  142           * @brief  OLED清屏
+  143           * @exampleCode
+  144           *      LCD_CLS; //屏幕清屏
+  145           * @endcode
+  146          *********************************************************************************************************
+             -******************/
+  147          void LCD_CLS(void)
+  148          {
+  149   1        unsigned char y,x;
+  150   1        for(y=0;y<8;y++)
+  151   1        {
+  152   2          LCD_WrCmd((uint8_t)(0xb0+y));
+  153   2          LCD_WrCmd(0x01);
+  154   2          LCD_WrCmd(0x10);
+  155   2          for(x=0;x<128;x++)
+  156   2            LCD_WrDat(0);
+  157   2        }
+  158   1      }
+  159           /*******************************************************************************************************
+             -*******************
+  160           * @brief  OLED画logo
+  161           * @brief  内部调用，无需关心
+  162          *********************************************************************************************************
+             -******************/
+  163          void Draw_WPIELogo(void)
+  164          {
+  165   1        uint8_t x,y;
+  166   1        unsigned int ii=0;
+  167   1        for(y=0;y<8;y++)
+  168   1        {
+  169   2          for(x=0;x<128;x++)
+  170   2          {
+  171   3            LCD_Set_Pos(x,y);
+  172   3            LCD_WrDat(gImage_Wpie[ii++]);
+  173   3          }
+  174   2        }
+  175   1      }
+  176           /*******************************************************************************************************
+             -*******************
+C251 COMPILER V5.60.0,  LCD                                                                29/11/25  12:44:11  PAGE 4   
+
+  177           * @brief  OLED初始化
+  178           * @exampleCode
+  179           *      LCD_Init(); //OLED屏幕初始化
+  180           * @endcode
+  181          *********************************************************************************************************
+             -******************/
+  182          void LCD_Init(void)
+  183          {
+  184   1        GPIO_Init(OLED_CS_PORT ,OLED_CS_PIN ,GPIO_OUT_PP);
+  185   1        GPIO_Init(OLED_RST_PORT,OLED_RST_PIN,GPIO_OUT_PP);
+  186   1        GPIO_Init(OLED_DC_PORT ,OLED_DC_PIN ,GPIO_OUT_PP);
+  187   1        GPIO_Init(OLED_D1_PORT ,OLED_D1_PIN ,GPIO_OUT_PP);
+  188   1        GPIO_Init(OLED_CLK_PORT,OLED_CLK_PIN,GPIO_OUT_PP);
+  189   1        Ms_Delay(200);
+  190   1         
+  191   1        
+  192   1        OLED_CLK_Set();
+  193   1        //OLED_CS_Set();  //预制SLK和SS为高电平
+  194   1        
+  195   1        OLED_RST_Clear();
+  196   1        Ms_Delay(50);
+  197   1        OLED_RST_Set();
+  198   1        
+  199   1        LCD_WrCmd(0xae);//--turn off oled panel
+  200   1        LCD_WrCmd(0x00);//---set low column address
+  201   1        LCD_WrCmd(0x10);//---set high column address
+  202   1        LCD_WrCmd(0x40);//--set start line address  Set Mapping RAM Display Start Line (0x00~0x3F)
+  203   1        LCD_WrCmd(0x81);//--set contrast control register
+  204   1        LCD_WrCmd(0xc8); // Set SEG Output Current Brightness
+  205   1        LCD_WrCmd(0xa1);//--Set SEG/Column Mapping     0xa0左右反置 0xa1正常
+  206   1        LCD_WrCmd(0xc8);//Set COM/Row Scan Direction   0xc0上下反置 0xc8正常
+  207   1        LCD_WrCmd(0xa6);//--set normal display
+  208   1        // LCD_WrCmd(0xa8);//--set multiplex ratio(1 to 64)
+  209   1        // LCD_WrCmd(0x3f);//--1/64 duty
+  210   1        LCD_WrCmd(0xd3);//-set display offset Shift Mapping RAM Counter (0x00~0x3F)
+  211   1        LCD_WrCmd(0x00);//-not offset
+  212   1        LCD_WrCmd(0xd5);//--set display clock divide ratio/oscillator frequency
+  213   1        LCD_WrCmd(0x80);//--set divide ratio, Set Clock as 100 Frames/Sec
+  214   1        LCD_WrCmd(0xd9);//--set pre-charge period
+  215   1        LCD_WrCmd(0xf1);//Set Pre-Charge as 15 Clocks & Discharge as 1 Clock
+  216   1        LCD_WrCmd(0xda);//--set com pins hardware configuration
+  217   1        LCD_WrCmd(0x12);
+  218   1        LCD_WrCmd(0xdb);//--set vcomh
+  219   1        LCD_WrCmd(0x40);//Set VCOM Deselect Level
+  220   1        LCD_WrCmd(0x20);//-Set Page Addressing Mode (0x00/0x01/0x02)
+  221   1        LCD_WrCmd(0x00);//
+  222   1        LCD_WrCmd(0x8d);//--set Charge Pump enable/disable
+  223   1        LCD_WrCmd(0x14);//--set(0x10) disable
+  224   1        LCD_WrCmd(0xa4);// Disable Entire Display On (0xa4/0xa5)
+  225   1        LCD_WrCmd(0xa6);// Disable Inverse Display On (0xa6/a7)
+  226   1        LCD_WrCmd(0xaf);//--turn on oled panel
+  227   1        LCD_Fill(0x00);  //初始清屏  
+  228   1        LCD_Set_Pos(0,0);
+  229   1        Draw_WPIELogo();
+  230   1        Ms_Delay(1000);
+  231   1        LCD_CLS();
+  232   1        LCD_Set_Pos(0,0);
+  233   1      }
+  234           /*******************************************************************************************************
+             -*******************
+  235           * @brief  OLED画字符串
+  236           * @exampleCode
+  237           *      LCD_P6x8Str(0,0,"w.pie") //在起始坐标x为0，y为0绘制一个w.pie的字符串
+  238           * @endcode
+  239           * @param[in]  x    x起始坐标
+  240           * @param[in]  y    y起始坐标(行数)             
+C251 COMPILER V5.60.0,  LCD                                                                29/11/25  12:44:11  PAGE 5   
+
+  241           * @param[in]  ch[] 字符串
+  242          *********************************************************************************************************
+             -******************/
+  243          void LCD_P6x8Str(unsigned char x,unsigned char y,char ch[])
+  244          {
+  245   1        unsigned char c=0,i=0,j=0;
+  246   1        while (ch[j]!='\0')
+  247   1        {
+  248   2          c =ch[j]-32;
+  249   2          if(x>120){x=0;y++;}
+  250   2          LCD_Set_Pos(x,y);
+  251   2          for(i=0;i<6;i++)
+  252   2          LCD_WrDat(F6x8[c][i]);
+  253   2          x+=6;
+  254   2          j++;
+  255   2        }
+  256   1      }
+  257           /*******************************************************************************************************
+             -*******************
+  258           * @brief  OLED画字符串
+  259           * @exampleCode
+  260           *      LCD_P8x16Str(0,0,"w.pie") //在起始坐标x为0，y为0绘制一个w.pie的字符串
+  261           * @endcode
+  262           * @param[in]  x    x起始坐标
+  263           * @param[in]  y    y起始坐标(行数)             
+  264           * @param[in]  ch[] 字符串
+  265          *********************************************************************************************************
+             -******************/
+  266          void LCD_P8x16Str(unsigned char x,unsigned char y,char ch[])
+  267          {
+  268   1        unsigned char c=0,i=0,j=0;
+  269   1        
+  270   1        while (ch[j]!='\0')
+  271   1        {
+  272   2          c =ch[j]-32;
+  273   2          if(x>120){x=0;y++;}
+  274   2          LCD_Set_Pos(x,y);
+  275   2          for(i=0;i<8;i++)
+  276   2            LCD_WrDat(F8X16[c*16+i]);
+  277   2          LCD_Set_Pos(x,(uint8_t)(y+1));
+  278   2          for(i=0;i<8;i++)
+  279   2            LCD_WrDat(F8X16[c*16+i+8]);
+  280   2          x+=8;
+  281   2          j++;
+  282   2        }
+  283   1      }
+  284           /*******************************************************************************************************
+             -*******************
+  285           * @brief  OLED画无符号整形
+  286           * @exampleCode
+  287                  unsigned int a;
+  288           *      LCD_PrintU16(0,0,a) //在起始坐标x为0，y为0的地方显示变量a的值
+  289           * @endcode
+  290           * @param[in]  x    x起始坐标
+  291           * @param[in]  y    y起始坐标(行数)             
+  292           * @param[in]  num  要显示的变量
+  293          *********************************************************************************************************
+             -******************/
+  294          void LCD_PrintU16(unsigned char x,unsigned char y,unsigned int num)
+  295          {
+  296   1        int j=0;
+  297   1        char tmp[6],i;
+  298   1        tmp[5]=0;
+  299   1        tmp[4]=(unsigned char)(num%10+0x30);
+  300   1        tmp[3]=(unsigned char)(num/10%10+0x30);
+  301   1        tmp[2]=(unsigned char)(num/100%10+0x30);
+C251 COMPILER V5.60.0,  LCD                                                                29/11/25  12:44:11  PAGE 6   
+
+  302   1        tmp[1]=(unsigned char)(num/1000%10+0x30);
+  303   1        tmp[0]=(unsigned char)(num/10000%10+0x30);
+  304   1        
+  305   1        for(i=0;i<4;i++)
+  306   1        {
+  307   2          if(tmp[0]=='0')//移位
+  308   2          {
+  309   3            for(j=0;j<5-i;j++)
+  310   3              tmp[j]=tmp[j+1];
+  311   3          } 
+  312   2          else
+  313   2            break;
+  314   2        }
+  315   1        
+  316   1        LCD_P6x8Str(x,y,tmp);
+  317   1        
+  318   1      }
+  319           /*******************************************************************************************************
+             -*******************
+  320           * @brief  OLED画浮点型
+  321           * @exampleCode
+  322                  float a;
+  323           *      LCD_PrintFloat(0 , 0 , a , 7) //在起始坐标x为0，y为0的地方显示变量a的值,一共显示7位
+  324           * @endcode
+  325           * @param[in]  x    x起始坐标
+  326           * @param[in]  y    y起始坐标(行数)             
+  327           * @param[in]  num  要显示的变量
+  328          *********************************************************************************************************
+             -******************/
+  329          void LCD_PrintFloat(unsigned char x,unsigned char y,float num,unsigned int N)
+  330          {
+  331   1        #define MAX_STR 12 
+  332   1        char tmp[MAX_STR]={0};int n=3;
+  333   1        float NUM=num;
+  334   1        float _num=fabs(NUM);
+  335   1        int i;
+  336   1        uint32_t num0;
+  337   1       if(NUM<0)
+  338   1       {
+  339   2         NUM=_num;
+  340   2         tmp[0]='-';
+  341   2       }
+  342   1       else tmp[0]='+';
+  343   1       for(i=0;i<MAX_STR+1;i++)
+  344   1       {
+  345   2         _num/=10;
+  346   2         if(_num<1)break;
+  347   2         else  n++;
+  348   2       }
+  349   1       if(N>7)N=7;
+  350   1       if(((int)(N)+2-n)>0)for(i=0;i<(N+2-n);i++)NUM*=10;
+  351   1       num0=(uint32_t)NUM;
+  352   1       for(i=N>=n?(N+2-1):n-1;i>0;i--)
+  353   1        {
+  354   2          if(i!=n-1)
+  355   2          {
+  356   3            tmp[i]=(char)(num0%10+0x30);
+  357   3            num0/=10;
+  358   3          }
+  359   2          else
+  360   2            tmp[i]='.';
+  361   2        }
+  362   1        tmp[N+2]=0;
+  363   1        LCD_P6x8Str(x,y,tmp);
+  364   1      }
+
+C251 COMPILER V5.60.0,  LCD                                                                29/11/25  12:44:11  PAGE 7   
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =      1625     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =    ------         36
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =      1036     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

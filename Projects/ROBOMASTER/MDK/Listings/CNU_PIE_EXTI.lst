@@ -1,0 +1,418 @@
+C251 COMPILER V5.60.0,  CNU_PIE_EXTI                                                       26/11/25  01:20:15  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE CNU_PIE_EXTI
+OBJECT MODULE PLACED IN .\Objects\CNU_PIE_EXTI.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\..\..\Libraries\deivers\src\CNU_PIE_EXTI.c XSMALL BRO
+                    -WSE INCDIR(..\..\..\Libraries\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBU
+                    -G PRINT(.\Listings\CNU_PIE_EXTI.lst) TABS(2) OBJECT(.\Objects\CNU_PIE_EXTI.obj) 
+
+stmt  level    source
+
+    1          /********************************************************************************************************
+             -*************
+    2           *     COPYRIGHT NOTICE
+    3           *     Copyright (c) 2023,CNU_W.PIE
+    4           *     All rights reserved.
+    5           *
+    6           *     除注明出处外，以下所有内容版权均属胖胖个人所有，未经允许，不得用于商业用途，
+    7           *     修改内容时必须保留PP的版权声明。
+    8           *     Except where indicated, the copyright of all the contents below is owned by PP 
+    9           *     and can not be used for commercial purposes without permission. 
+   10           *     The copyright notice of PP must be preserved when modifying the content.
+   11           *
+   12           * @file       CNU_PIE_EXTI.c
+   13           * @brief      EXTI
+   14           * @author     胖胖
+   15           * @version    v1.0
+   16           * @note       NULL
+   17           * @date       2023-07-26
+   18           ********************************************************************************************************
+             -************/
+   19          #include "CNU_PIE_EXTI.h"
+   20           
+   21           uint8_t Port_Exti_Flag[8];
+   22           
+   23          uint8_t GPIO_EXTI_Init(GPIO_Port_enum GPIO_Port , GPIO_Pin_enum GPIO_Pin , EXTI_MODE_Enum EXTI_Mode)
+   24           {
+   25   1         if(GPIO_Port > GPIO_P7)      return FAIL; //初始化错误值返回FAIL
+   26   1         if(GPIO_Pin  > GPIO_Pin_All) return FAIL; //初始化错误值返回FAIL
+   27   1         if(EXTI_Mode > HIGH_LEVEL)   return FAIL; //初始化错误值返回FAIL
+   28   1         
+   29   1         switch (GPIO_Port)
+   30   1         {
+   31   2           case GPIO_P0://端口0
+   32   2             switch (EXTI_Mode)
+   33   2             {
+   34   3               P0INTE |= GPIO_Pin;//使能P0段口对应引脚开启外部中断
+   35   3               case FALLING_EDGE:
+   36   3                 P0IM1 &= ~GPIO_Pin,  P0IM0 &= ~GPIO_Pin;  break; //下降沿中断     
+   37   3               case RISING_EDGE:
+   38   3                 P0IM1 &= ~GPIO_Pin,  P0IM0 |=  GPIO_Pin;   break;//上升沿中断
+   39   3               case LOW_LEVEL:
+   40   3                 P0IM1 |=  GPIO_Pin,  P0IM0 &= ~GPIO_Pin;  break; //低电平中断
+   41   3               case HIGH_LEVEL:
+   42   3                 P0IM1 |=  GPIO_Pin,  P0IM0 |=  GPIO_Pin;   break;//高电平中断
+   43   3               default:
+   44   3                 return FAIL; break;//初始化失败
+   45   3             }break;
+   46   2           case GPIO_P1://端口1
+   47   2             switch (EXTI_Mode)
+   48   2             {
+   49   3               P1INTE |= GPIO_Pin;//使能P1段口对应引脚开启外部中断
+   50   3               case FALLING_EDGE:
+   51   3                 P1IM1 &= ~GPIO_Pin,  P1IM0 &= ~GPIO_Pin;  break; //下降沿中断     
+   52   3               case RISING_EDGE:
+   53   3                 P1IM1 &= ~GPIO_Pin,  P1IM0 |=  GPIO_Pin;   break;//上升沿中断
+   54   3               case LOW_LEVEL:
+   55   3                 P1IM1 |=  GPIO_Pin,  P1IM0 &= ~GPIO_Pin;  break; //低电平中断
+C251 COMPILER V5.60.0,  CNU_PIE_EXTI                                                       26/11/25  01:20:15  PAGE 2   
+
+   56   3               case HIGH_LEVEL:
+   57   3                 P1IM1 |=  GPIO_Pin,  P1IM0 |=  GPIO_Pin;   break;//高电平中断
+   58   3               default:
+   59   3                 return FAIL; break;//初始化失败
+   60   3             }break;    
+   61   2           case GPIO_P2://端口2
+   62   2             switch (EXTI_Mode)
+   63   2             {
+   64   3               P2INTE |= GPIO_Pin;//使能P2段口对应引脚开启外部中断
+   65   3               case FALLING_EDGE:
+   66   3                 P2IM1 &= ~GPIO_Pin,  P2IM0 &= ~GPIO_Pin;  break; //下降沿中断     
+   67   3               case RISING_EDGE:
+   68   3                 P2IM1 &= ~GPIO_Pin,  P2IM0 |=  GPIO_Pin;   break;//上升沿中断
+   69   3               case LOW_LEVEL:
+   70   3                 P2IM1 |=  GPIO_Pin,  P2IM0 &= ~GPIO_Pin;  break; //低电平中断
+   71   3               case HIGH_LEVEL:
+   72   3                 P2IM1 |=  GPIO_Pin,  P2IM0 |=  GPIO_Pin;   break;//高电平中断
+   73   3               default:
+   74   3                 return FAIL; break;//初始化失败
+   75   3             }break;    
+   76   2           case GPIO_P3://端口3
+   77   2             switch (EXTI_Mode)
+   78   2             {
+   79   3               P3INTE |= GPIO_Pin;//使能P3段口对应引脚开启外部中断
+   80   3               case FALLING_EDGE:
+   81   3                 P3IM1 &= ~GPIO_Pin,  P3IM0 &= ~GPIO_Pin;  break; //下降沿中断     
+   82   3               case RISING_EDGE:
+   83   3                 P3IM1 &= ~GPIO_Pin,  P3IM0 |=  GPIO_Pin;   break;//上升沿中断
+   84   3               case LOW_LEVEL:
+   85   3                 P3IM1 |=  GPIO_Pin,  P3IM0 &= ~GPIO_Pin;  break; //低电平中断
+   86   3               case HIGH_LEVEL:
+   87   3                 P3IM1 |=  GPIO_Pin,  P3IM0 |=  GPIO_Pin;   break;//高电平中断
+   88   3               default:
+   89   3                 return FAIL; break;//初始化失败
+   90   3             }break;  
+   91   2           case GPIO_P4://端口4
+   92   2             switch (EXTI_Mode)
+   93   2             {
+   94   3               P4INTE |= GPIO_Pin;//使能P4段口对应引脚开启外部中断
+   95   3               case FALLING_EDGE:
+   96   3                 P4IM1 &= ~GPIO_Pin,  P4IM0 &= ~GPIO_Pin;  break; //下降沿中断     
+   97   3               case RISING_EDGE:
+   98   3                 P4IM1 &= ~GPIO_Pin,  P4IM0 |=  GPIO_Pin;   break;//上升沿中断
+   99   3               case LOW_LEVEL:
+  100   3                 P4IM1 |=  GPIO_Pin,  P4IM0 &= ~GPIO_Pin;  break; //低电平中断
+  101   3               case HIGH_LEVEL:
+  102   3                 P4IM1 |=  GPIO_Pin,  P4IM0 |=  GPIO_Pin;   break;//高电平中断
+  103   3               default:
+  104   3                 return FAIL; break;//初始化失败
+  105   3             }break;  
+  106   2           case GPIO_P5://端口5
+  107   2             switch (EXTI_Mode)
+  108   2             {
+  109   3               P5INTE |= GPIO_Pin;//使能P2段口对应引脚开启外部中断
+  110   3               case FALLING_EDGE:
+  111   3                 P5IM1 &= ~GPIO_Pin,  P5IM0 &= ~GPIO_Pin;  break; //下降沿中断     
+  112   3               case RISING_EDGE:
+  113   3                 P5IM1 &= ~GPIO_Pin,  P5IM0 |=  GPIO_Pin;   break;//上升沿中断
+  114   3               case LOW_LEVEL:
+  115   3                 P5IM1 |=  GPIO_Pin,  P5IM0 &= ~GPIO_Pin;  break; //低电平中断
+  116   3               case HIGH_LEVEL:
+  117   3                 P5IM1 |=  GPIO_Pin,  P5IM0 |=  GPIO_Pin;   break;//高电平中断
+  118   3               default:
+  119   3                 return FAIL; break;//初始化失败
+  120   3             }break;    
+  121   2           case GPIO_P6://端口6
+C251 COMPILER V5.60.0,  CNU_PIE_EXTI                                                       26/11/25  01:20:15  PAGE 3   
+
+  122   2             switch (EXTI_Mode)
+  123   2             {
+  124   3               P6INTE |= GPIO_Pin;//使能P6段口对应引脚开启外部中断
+  125   3               case FALLING_EDGE:
+  126   3                 P6IM1 &= ~GPIO_Pin,  P6IM0 &= ~GPIO_Pin;  break; //下降沿中断     
+  127   3               case RISING_EDGE:
+  128   3                 P6IM1 &= ~GPIO_Pin,  P6IM0 |=  GPIO_Pin;   break;//上升沿中断
+  129   3               case LOW_LEVEL:
+  130   3                 P6IM1 |=  GPIO_Pin,  P6IM0 &= ~GPIO_Pin;  break; //低电平中断
+  131   3               case HIGH_LEVEL:
+  132   3                 P6IM1 |=  GPIO_Pin,  P6IM0 |=  GPIO_Pin;   break;//高电平中断
+  133   3               default:
+  134   3                 return FAIL; break;//初始化失败
+  135   3             }break;
+  136   2           case GPIO_P7://端口7
+  137   2             switch (EXTI_Mode)
+  138   2             {
+  139   3               P7INTE |= GPIO_Pin;//使能P2段口对应引脚开启外部中断
+  140   3               case FALLING_EDGE:
+  141   3                 P7IM1 &= ~GPIO_Pin,  P7IM0 &= ~GPIO_Pin;  break; //下降沿中断     
+  142   3               case RISING_EDGE:
+  143   3                 P7IM1 &= ~GPIO_Pin,  P7IM0 |=  GPIO_Pin;   break;//上升沿中断
+  144   3               case LOW_LEVEL:
+  145   3                 P7IM1 |=  GPIO_Pin,  P7IM0 &= ~GPIO_Pin;  break; //低电平中断
+  146   3               case HIGH_LEVEL:
+  147   3                 P7IM1 |=  GPIO_Pin,  P7IM0 |=  GPIO_Pin;   break;//高电平中断
+  148   3               default:
+  149   3                 return FAIL; break;//初始化失败
+  150   3             }break;
+  151   2           default:
+  152   2             return FAIL; break;         
+  153   2         }
+  154   1        return SUCCEED; //成功
+  155   1       }
+  156           
+  157           uint8_t GPIO_EXTI_Open(GPIO_Port_enum GPIO_Port , GPIO_Pin_enum GPIO_Pin)
+  158           {
+  159   1         if(GPIO_Port > GPIO_P7)      return FAIL; //初始化错误值返回FAIL
+  160   1         if(GPIO_Pin  > GPIO_Pin_All) return FAIL; //初始化错误值返回FAIL
+  161   1         
+  162   1         switch (GPIO_Port)
+  163   1         {
+  164   2           case GPIO_P0://端口0
+  165   2                P0INTE |= GPIO_Pin;//使能P0段口对应引脚开启外部中断
+  166   2           break;
+  167   2           case GPIO_P1://端口1
+  168   2                P1INTE |= GPIO_Pin;//使能P1段口对应引脚开启外部中断
+  169   2           break;   
+  170   2           case GPIO_P2://端口2
+  171   2                P2INTE |= GPIO_Pin;//使能P2段口对应引脚开启外部中断
+  172   2           break;   
+  173   2           case GPIO_P3://端口3
+  174   2                P3INTE |= GPIO_Pin;//使能P3段口对应引脚开启外部中断
+  175   2           break; 
+  176   2           case GPIO_P4://端口4
+  177   2                P4INTE |= GPIO_Pin;//使能P4段口对应引脚开启外部中断
+  178   2           break; 
+  179   2           case GPIO_P5://端口5
+  180   2                P5INTE |= GPIO_Pin;//使能P2段口对应引脚开启外部中断
+  181   2           break;   
+  182   2           case GPIO_P6://端口6
+  183   2                P6INTE |= GPIO_Pin;//使能P6段口对应引脚开启外部中断
+  184   2           break;
+  185   2           case GPIO_P7://端口7
+  186   2                P7INTE |= GPIO_Pin;//使能P2段口对应引脚开启外部中断
+  187   2           break;
+C251 COMPILER V5.60.0,  CNU_PIE_EXTI                                                       26/11/25  01:20:15  PAGE 4   
+
+  188   2           default:
+  189   2             return FAIL; break;         
+  190   2         }
+  191   1        return SUCCEED; //成功
+  192   1       }
+  193           
+  194           uint8_t GPIO_EXTI_Set_Priority(GPIO_Port_enum GPIO_Port , EXTI_PRIORITY_Enum EXTI_Priority)
+  195           {
+  196   1         if(GPIO_Port > GPIO_P7)              return FAIL; //初始化错误值返回FAIL
+  197   1         if(EXTI_Priority  > Lowest_priority) return FAIL; //初始化错误值返回FAIL
+  198   1         
+  199   1         switch (GPIO_Port)
+  200   1         {
+  201   2           case GPIO_P0://端口0
+  202   2             switch (EXTI_Priority)
+  203   2             {
+  204   3               case Highest_priority:
+  205   3                 PIN_IP &= ~P0_PRI0RITY,  PIN_IPH &= ~P0_PRI0RITY;   break;  
+  206   3               case Second_priority:
+  207   3                 PIN_IP |=  P0_PRI0RITY,  PIN_IPH &= ~P0_PRI0RITY;   break;
+  208   3               case Third_priority:
+  209   3                 PIN_IP &= ~P0_PRI0RITY,  PIN_IPH |=  P0_PRI0RITY;   break;
+  210   3               case Lowest_priority:
+  211   3                 PIN_IP |=  P0_PRI0RITY,  PIN_IPH |=  P0_PRI0RITY;   break;
+  212   3               default:
+  213   3                 return FAIL; break;//初始化失败
+  214   3             }break;
+  215   2           case GPIO_P1://端口1
+  216   2             switch (EXTI_Priority)
+  217   2             {
+  218   3               case Highest_priority:
+  219   3                 PIN_IP &= ~P1_PRI0RITY,  PIN_IPH &= ~P1_PRI0RITY;   break; 
+  220   3               case Second_priority:
+  221   3                 PIN_IP |=  P1_PRI0RITY,  PIN_IPH |=  P1_PRI0RITY;   break;
+  222   3               case Third_priority:
+  223   3                 PIN_IP |=  P1_PRI0RITY,  PIN_IPH &= ~P1_PRI0RITY;   break;
+  224   3               case Lowest_priority:
+  225   3                 PIN_IP |=  P1_PRI0RITY,  PIN_IPH |=  P1_PRI0RITY;   break;
+  226   3               default:
+  227   3                 return FAIL; break;//初始化失败
+  228   3             }break;    
+  229   2           case GPIO_P2://端口2
+  230   2             switch (EXTI_Priority)
+  231   2             {
+  232   3               case Highest_priority:
+  233   3                 PIN_IP &= ~P2_PRI0RITY,  PIN_IPH &= ~P2_PRI0RITY;   break; 
+  234   3               case Second_priority:
+  235   3                 PIN_IP |=  P2_PRI0RITY,  PIN_IPH |=  P2_PRI0RITY;   break;
+  236   3               case Third_priority:
+  237   3                 PIN_IP |=  P2_PRI0RITY,  PIN_IPH &= ~P2_PRI0RITY;   break;
+  238   3               case Lowest_priority:
+  239   3                 PIN_IP |=  P2_PRI0RITY,  PIN_IPH |=  P2_PRI0RITY;   break;
+  240   3               default:
+  241   3                 return FAIL; break;//初始化失败
+  242   3             }break;    
+  243   2           case GPIO_P3://端口3
+  244   2             switch (EXTI_Priority)
+  245   2             {
+  246   3               case Highest_priority:
+  247   3                 PIN_IP &= ~P3_PRI0RITY,  PIN_IPH &= ~P3_PRI0RITY;   break; 
+  248   3               case Second_priority:
+  249   3                 PIN_IP |=  P3_PRI0RITY,  PIN_IPH |=  P3_PRI0RITY;   break;
+  250   3               case Third_priority:
+  251   3                 PIN_IP |=  P3_PRI0RITY,  PIN_IPH &= ~P3_PRI0RITY;   break;
+  252   3               case Lowest_priority:
+  253   3                 PIN_IP |=  P3_PRI0RITY,  PIN_IPH |=  P3_PRI0RITY;   break;
+C251 COMPILER V5.60.0,  CNU_PIE_EXTI                                                       26/11/25  01:20:15  PAGE 5   
+
+  254   3               default:
+  255   3                 return FAIL; break;//初始化失败
+  256   3             }break;  
+  257   2           case GPIO_P4://端口4
+  258   2             switch (EXTI_Priority)
+  259   2             {
+  260   3               case Highest_priority:
+  261   3                 PIN_IP &= ~P4_PRI0RITY,  PIN_IPH &= ~P4_PRI0RITY;   break; 
+  262   3               case Second_priority:
+  263   3                 PIN_IP |=  P4_PRI0RITY,  PIN_IPH |=  P4_PRI0RITY;   break;
+  264   3               case Third_priority:
+  265   3                 PIN_IP |=  P4_PRI0RITY,  PIN_IPH &= ~P4_PRI0RITY;   break;
+  266   3               case Lowest_priority:
+  267   3                 PIN_IP |=  P4_PRI0RITY,  PIN_IPH |=  P4_PRI0RITY;   break;
+  268   3               default:
+  269   3                 return FAIL; break;//初始化失败
+  270   3             }break;  
+  271   2           case GPIO_P5://端口5
+  272   2             switch (EXTI_Priority)
+  273   2             {
+  274   3               case Highest_priority:
+  275   3                 PIN_IP &= ~P5_PRI0RITY,  PIN_IPH &= ~P5_PRI0RITY;   break; 
+  276   3               case Second_priority:
+  277   3                 PIN_IP |=  P5_PRI0RITY,  PIN_IPH |=  P5_PRI0RITY;   break;
+  278   3               case Third_priority:
+  279   3                 PIN_IP |=  P5_PRI0RITY,  PIN_IPH &= ~P5_PRI0RITY;   break;
+  280   3               case Lowest_priority:
+  281   3                 PIN_IP |=  P5_PRI0RITY,  PIN_IPH |=  P5_PRI0RITY;   break;
+  282   3               default:
+  283   3                 return FAIL; break;//初始化失败
+  284   3             }break;    
+  285   2           case GPIO_P6://端口6
+  286   2             switch (EXTI_Priority)
+  287   2             {
+  288   3               case Highest_priority:
+  289   3                 PIN_IP &= ~P6_PRI0RITY,  PIN_IPH &= ~P6_PRI0RITY;   break; 
+  290   3               case Second_priority:
+  291   3                 PIN_IP |=  P6_PRI0RITY,  PIN_IPH |=  P6_PRI0RITY;   break;
+  292   3               case Third_priority:
+  293   3                 PIN_IP |=  P6_PRI0RITY,  PIN_IPH &= ~P6_PRI0RITY;   break;
+  294   3               case Lowest_priority:
+  295   3                 PIN_IP |=  P6_PRI0RITY,  PIN_IPH |=  P6_PRI0RITY;   break;
+  296   3               default:
+  297   3                 return FAIL; break;//初始化失败
+  298   3             }break;
+  299   2           case GPIO_P7://端口7
+  300   2             switch (EXTI_Priority)
+  301   2             {
+  302   3               case Highest_priority:
+  303   3                 PIN_IP &= ~P7_PRI0RITY,  PIN_IPH &= ~P7_PRI0RITY;   break; 
+  304   3               case Second_priority:
+  305   3                 PIN_IP |=  P7_PRI0RITY,  PIN_IPH |=  P7_PRI0RITY;   break;
+  306   3               case Third_priority:
+  307   3                 PIN_IP |=  P7_PRI0RITY,  PIN_IPH &= ~P7_PRI0RITY;   break;
+  308   3               case Lowest_priority:
+  309   3                 PIN_IP |=  P7_PRI0RITY,  PIN_IPH |=  P7_PRI0RITY;   break;
+  310   3               default:
+  311   3                 return FAIL; break;//初始化失败
+  312   3             }break;
+  313   2           default:
+  314   2             return FAIL; break;         
+  315   2         }
+  316   1        return SUCCEED; //成功
+  317   1       }
+  318           
+  319          uint8_t GPIO_EXTI_Flag_Read(GPIO_Port_enum GPIO_Port)
+C251 COMPILER V5.60.0,  CNU_PIE_EXTI                                                       26/11/25  01:20:15  PAGE 6   
+
+  320          {
+  321   1         switch (GPIO_Port)
+  322   1         {
+  323   2           case GPIO_P0://端口0
+  324   2            Port_Exti_Flag[0] = P0INTF  ;break; 
+  325   2           case GPIO_P1://端口1         
+  326   2            Port_Exti_Flag[1] = P1INTF  ;break; 
+  327   2           case GPIO_P2://端口2         
+  328   2            Port_Exti_Flag[2] = P2INTF  ;break; 
+  329   2           case GPIO_P3://端口3         
+  330   2            Port_Exti_Flag[3] = P3INTF  ;break;  
+  331   2           case GPIO_P4://端口4         
+  332   2            Port_Exti_Flag[4] = P4INTF  ;break; 
+  333   2           case GPIO_P5://端口5         
+  334   2            Port_Exti_Flag[5] = P5INTF  ;break; 
+  335   2           case GPIO_P6://端口6         
+  336   2            Port_Exti_Flag[6] = P6INTF  ;break; 
+  337   2           case GPIO_P7://端口7         
+  338   2            Port_Exti_Flag[7] = P7INTF  ;break; 
+  339   2           default:
+  340   2             return FAIL; break;         
+  341   2         }
+  342   1        return SUCCEED; //成功
+  343   1      }
+  344           
+  345          uint8_t GPIO_EXTI_Flag_Clear(GPIO_Port_enum GPIO_Port)
+  346          {
+  347   1         switch (GPIO_Port)
+  348   1         {
+  349   2           case GPIO_P0://端口0
+  350   2            P0INTF = 0;break; 
+  351   2           case GPIO_P1://端口1
+  352   2            P1INTF = 0;break; 
+  353   2           case GPIO_P2://端口2
+  354   2            P2INTF = 0;break; 
+  355   2           case GPIO_P3://端口3
+  356   2            P3INTF = 0;break;  
+  357   2           case GPIO_P4://端口4
+  358   2            P4INTF = 0;break; 
+  359   2           case GPIO_P5://端口5
+  360   2            P5INTF = 0;break; 
+  361   2           case GPIO_P6://端口6
+  362   2            P6INTF = 0;break; 
+  363   2           case GPIO_P7://端口7
+  364   2            P7INTF = 0;break; 
+  365   2           default:
+  366   2             return FAIL; break;         
+  367   2         }
+  368   1        return SUCCEED; //成功
+  369   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =      2677     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =         8     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+C251 COMPILER V5.60.0,  CNU_PIE_EXTI                                                       26/11/25  01:20:15  PAGE 7   
+
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

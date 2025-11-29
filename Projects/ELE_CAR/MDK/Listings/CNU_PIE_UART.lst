@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  CNU_PIE_UART                                                       15/11/25  22:32:27  PAGE 1   
+C251 COMPILER V5.60.0,  CNU_PIE_UART                                                       28/11/25  12:51:00  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE CNU_PIE_UART
@@ -66,7 +66,7 @@ stmt  level    source
    47   3            else if(TIM2 == Timer_CHN){SCON |= 0x50; T2L = brt; T2H = brt >> 8; AUXR |= 0x15;} P_SW1 &= ~(0x03<<6)
              -;
    48   3            if     ((UART1_RX_P30 == UART_Rx_Pin) && (UART1_TX_P31 == UART_Tx_Pin)) P_SW1 |= 0x00;
-C251 COMPILER V5.60.0,  CNU_PIE_UART                                                       15/11/25  22:32:27  PAGE 2   
+C251 COMPILER V5.60.0,  CNU_PIE_UART                                                       28/11/25  12:51:00  PAGE 2   
 
    49   3            else if((UART1_RX_P36 == UART_Rx_Pin) && (UART1_TX_P37 == UART_Tx_Pin)) P_SW1 |= 0x40;
    50   3            else if((UART1_RX_P16 == UART_Rx_Pin) && (UART1_TX_P17 == UART_Tx_Pin)) P_SW1 |= 0x80;
@@ -134,7 +134,7 @@ stmt  level    source
   106   2        }
   107   1      }
   108           /*******************************************************************************************************
-C251 COMPILER V5.60.0,  CNU_PIE_UART                                                       15/11/25  22:32:27  PAGE 3   
+C251 COMPILER V5.60.0,  CNU_PIE_UART                                                       28/11/25  12:51:00  PAGE 3   
 
              -*******************
   109           * @brief  UART发送数组
@@ -203,7 +203,7 @@ Module Information          Static   Overlayable
   edata size           =       213         12
   bit size             =    ------     ------
   ebit size            =    ------     ------
-C251 COMPILER V5.60.0,  CNU_PIE_UART                                                       15/11/25  22:32:27  PAGE 4   
+C251 COMPILER V5.60.0,  CNU_PIE_UART                                                       28/11/25  12:51:00  PAGE 4   
 
   bitaddressable size  =    ------     ------
   ebitaddressable size =    ------     ------

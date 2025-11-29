@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  isr                                                                15/11/25  22:32:25  PAGE 1   
+C251 COMPILER V5.60.0,  isr                                                                28/11/25  12:50:58  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE isr
@@ -66,7 +66,7 @@ stmt  level    source
    52   2          uart_receive[1]++;
    53   2          //接收数据寄存器为：S2BUF
    54   2        }
-C251 COMPILER V5.60.0,  isr                                                                15/11/25  22:32:25  PAGE 2   
+C251 COMPILER V5.60.0,  isr                                                                28/11/25  12:50:58  PAGE 2   
 
    55   1      }
    56          void UART3_Isr() interrupt 17
@@ -134,7 +134,7 @@ stmt  level    source
   118          //void  UART1_Isr() interrupt 4;
   119          //void  ADC_Isr()   interrupt 5;
   120          //void  LVD_Isr()   interrupt 6;
-C251 COMPILER V5.60.0,  isr                                                                15/11/25  22:32:25  PAGE 3   
+C251 COMPILER V5.60.0,  isr                                                                28/11/25  12:50:58  PAGE 3   
 
   121          //void  PCA_Isr()   interrupt 7;
   122          //void  UART2_Isr() interrupt 8;

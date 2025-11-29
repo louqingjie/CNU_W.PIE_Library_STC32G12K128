@@ -1,0 +1,148 @@
+C251 COMPILER V5.60.0,  main                                                               27/11/25  18:54:28  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE main
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\USER\src\main.c XSMALL BROWSE INCDIR(..\..\..\Librari
+                    -es\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG PRINT(.\Listings\main.lst
+                    -) TABS(2) OBJECT(.\Objects\main.obj) 
+
+stmt  level    source
+
+    1          #include "main.h"
+    2          #include "MATH.H"
+    3          uint16_t i;
+    4          void     main()
+    5          {
+    6   1          Board_Init();
+    7   1          PWM_Init(PWMB_CH3_P33, 1000, 10000);
+    8   1          while (1) {
+    9   2              //======= AP Disconnected 747 =======
+   10   2              for (i = 250; i < 700; i++) {
+   11   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+   12   3                  Ms_Delay(1);
+   13   3              }
+   14   2              PWM_SET_Duty(PWMB_CH3_P33, 10000);
+   15   2              Ms_Delay(10);
+   16   2              for (i = 250; i < 700; i++) {
+   17   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+   18   3                  Ms_Delay(1);
+   19   3              }
+   20   2              PWM_SET_Duty(PWMB_CH3_P33, 10000);
+   21   2              Ms_Delay(500);
+   22   2      
+   23   2              // ====== Master Warning =======
+   24   2              PWM_SET_Frequency(PWMB_CH3_P33, 300, 3000);
+   25   2              Ms_Delay(210);
+   26   2              PWM_SET_Frequency(PWMB_CH3_P33, 1000, 5000);
+   27   2              Ms_Delay(210);
+   28   2              PWM_SET_Frequency(PWMB_CH3_P33, 300, 3000);
+   29   2              Ms_Delay(210);
+   30   2              PWM_SET_Frequency(PWMB_CH3_P33, 1000, 5000);
+   31   2              Ms_Delay(500);
+   32   2      
+   33   2              //======= AP Disconnected =======
+   34   2              for (i = 200; i < 220; i++) {
+   35   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+   36   3                  Ms_Delay(3);
+   37   3              }
+   38   2              for (i = 220; i < 240; i++) {
+   39   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+   40   3                  Ms_Delay(4);
+   41   3              }
+   42   2              for (i = 240; i < 260; i++) {
+   43   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+   44   3                  Ms_Delay(5);
+   45   3              }
+   46   2              for (i = 260; i < 300; i++) {
+   47   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+   48   3                  Ms_Delay(10);
+   49   3              }
+   50   2              PWM_SET_Frequency(PWMB_CH3_P33, 10000, 10000);
+   51   2              Ms_Delay(50);
+   52   2              for (i = 200; i < 220; i++) {
+   53   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+   54   3                  Ms_Delay(3);
+   55   3              }
+   56   2              for (i = 220; i < 240; i++) {
+   57   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+C251 COMPILER V5.60.0,  main                                                               27/11/25  18:54:28  PAGE 2   
+
+   58   3                  Ms_Delay(4);
+   59   3              }
+   60   2              for (i = 240; i < 260; i++) {
+   61   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+   62   3                  Ms_Delay(5);
+   63   3              }
+   64   2              for (i = 260; i < 300; i++) {
+   65   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+   66   3                  Ms_Delay(10);
+   67   3              }
+   68   2              PWM_SET_Frequency(PWMB_CH3_P33, 10000, 10000);
+   69   2              Ms_Delay(500);
+   70   2      
+   71   2              // ====== Pull UP ======
+   72   2              for (i = 500; i < 1000; i++) {
+   73   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+   74   3                  Us_Delay(800);
+   75   3              }
+   76   2              for (i = 500; i < 1000; i++) {
+   77   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+   78   3                  Us_Delay(800);
+   79   3              }
+   80   2              PWM_SET_Duty(PWMB_CH3_P33, 10000);
+   81   2              Ms_Delay(800);
+   82   2              for (i = 500; i < 1000; i++) {
+   83   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+   84   3                  Us_Delay(800);
+   85   3              }
+   86   2              for (i = 500; i < 1000; i++) {
+   87   3                  PWM_SET_Frequency(PWMB_CH3_P33, i, 5000);
+   88   3                  Us_Delay(800);
+   89   3              }
+   90   2              PWM_SET_Duty(PWMB_CH3_P33, 10000);
+   91   2              Ms_Delay(800);
+   92   2      
+   93   2              // ====== Overspeed ======
+   94   2              // PWM_SET_Frequency(PWMB_CH3_P33, 1800, 5000);
+   95   2              // for (i = 8000; i < 5000; i -= 2) {
+   96   2              //     PWM_SET_Duty(PWMB_CH3_P33, i);
+   97   2              // }
+   98   2              // Ms_Delay(20);
+   99   2              // PWM_SET_Duty(PWMB_CH3_P33, 10000);
+  100   2              // Ms_Delay(10);
+  101   2              // PWM_SET_Frequency(PWMB_CH3_P33, 2000, 5000);
+  102   2              // for (i = 8000; i < 5000; i -= 2) {
+  103   2              //     PWM_SET_Duty(PWMB_CH3_P33, i);
+  104   2              // }
+  105   2              // Ms_Delay(20);
+  106   2              // PWM_SET_Duty(PWMB_CH3_P33, 10000);
+  107   2              // Ms_Delay(40);
+  108   2          }
+  109   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       983     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =         2     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+C251 COMPILER V5.60.0,  main                                                               27/11/25  18:54:28  PAGE 3   
+
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,83 @@
+C251 COMPILER V5.60.0,  CNU_PIE_WDog                                                       27/11/25  18:07:28  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE CNU_PIE_WDog
+OBJECT MODULE PLACED IN .\Objects\CNU_PIE_WDog.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\..\..\Libraries\deivers\src\CNU_PIE_WDog.c XSMALL BRO
+                    -WSE INCDIR(..\..\..\Libraries\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBU
+                    -G PRINT(.\Listings\CNU_PIE_WDog.lst) TABS(2) OBJECT(.\Objects\CNU_PIE_WDog.obj) 
+
+stmt  level    source
+
+    1          /********************************************************************************************************
+             -*************
+    2           *     COPYRIGHT NOTICE
+    3           *     Copyright (c) 2023,CNU_W.PIE
+    4           *     All rights reserved.
+    5           *     本库函数参考STC官方函数库
+    6           *     除注明出处外，以下所有内容版权均属胖胖个人所有，未经允许，不得用于商业用途，
+    7           *     修改内容时必须保留PP的版权声明。
+    8           *     Except where indicated, the copyright of all the contents below is owned by PP 
+    9           *     and can not be used for commercial purposes without permission. 
+   10           *     The copyright notice of PP must be preserved when modifying the content.
+   11           *
+   12           * @file       CNU_PIE_WDog.c
+   13           * @brief      WDog
+   14           * @author     胖胖
+   15           * @version    v1.0
+   16           * @note       NULL
+   17           * @date       2023-07-26
+   18           ********************************************************************************************************
+             -************/
+   19          #include "CNU_PIE_WDog.h"
+   20           /*******************************************************************************************************
+             -*******************
+   21           * @brief  看门狗初始化程序
+   22           * @param[in]  WDT   结构参数,请参考WDT.h里的定义
+   23          *********************************************************************************************************
+             -******************/
+   24          void WDog_Init(WDog_InitTypeDef *WDT)
+   25          {
+   26   1        if(WDT->WDT_Enable == ENABLE)   EN_WDT = 1; //使能看门狗
+   27   1      
+   28   1        WDT_PS_Set(WDT->WDT_PS);  //看门狗定时器时钟分频系数    WDT_SCALE_2,WDT_SCALE_4,WDT_SCALE_8,WDT_SCALE_16,WD
+             -T_SCALE_32,WDT_SCALE_64,WDT_SCALE_128,WDT_SCALE_256
+   29   1        if(WDT->WDT_IDLE_Mode == WDT_IDLE_STOP) IDL_WDT = 0;  //IDLE模式停止计数
+   30   1        else                  IDL_WDT = 1;  //IDLE模式继续计数
+   31   1      }
+   32          
+   33           /*******************************************************************************************************
+             -*******************
+   34           * @brief  清除看门狗初始化程序 喂狗
+   35          *********************************************************************************************************
+             -******************/
+   36          void WDog_Clear (void)
+   37          {
+   38   1        CLR_WDT = 1;    // 喂狗
+   39   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =        42     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+C251 COMPILER V5.60.0,  CNU_PIE_WDog                                                       27/11/25  18:07:28  PAGE 2   
+
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

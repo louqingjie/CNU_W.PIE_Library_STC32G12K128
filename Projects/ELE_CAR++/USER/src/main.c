@@ -171,12 +171,12 @@ void ADC_Norm_Fast(uint16_t *adcMax, uint16_t *adcMin, uint8_t *adcPin)
 {
     char     LimLine[22];
     uint16_t i, j, getADC[4];
-    // uint16_t note[8] = {1046, 1175, 1318, 1397, 1568, 1760, 1976, 2093};
+    uint16_t note[8] = {1046, 1175, 1318, 1397, 1568, 1760, 1976, 2093};
     LCD_P8x16Str(0, 3, "NORM...");
 
     // 连续采样30000次，动态获取最大值和最小值
     for (i = 0; i < 32000; i++) {
-        // PWM_SET_Frequency(BUZZER, note[i / 4000], 5000);
+        PWM_SET_Frequency(BUZZER, note[i / 4000], 5000);
         for (j = 0; j < 4; j++) {
             getADC[j] = ADC_Read_Once(ADC[adcPin[j]], ADC_12BIT);
             if (adcMax[j] < getADC[j])
@@ -194,10 +194,10 @@ void ADC_Norm_Fast(uint16_t *adcMax, uint16_t *adcMin, uint8_t *adcPin)
     LCD_P6x8Str(0, 7, LimLine);
     // PWM_SET_Frequency(BUZZER, 2093, 10000);
     Ms_Delay(1000);
-    // for (i = 0; i < 8; i++) {
-    //     PWM_SET_Frequency(BUZZER, note[7-i], 5000);
-    //     Ms_Delay(100);
-    // }
+    for (i = 0; i < 8; i++) {
+        PWM_SET_Frequency(BUZZER, note[7-i], 5000);
+        Ms_Delay(100);
+    }
     PWM_SET_Duty(BUZZER, 10000);
     LCD_P8x16Str(0, 3, "       ");
 }
