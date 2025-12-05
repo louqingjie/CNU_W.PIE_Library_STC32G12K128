@@ -509,6 +509,16 @@
               <FileType>5</FileType>
               <FilePath>..\..\..\Libraries\deivers\inc\CNU_PIE_FIFO.h</FilePath>
             </File>
+            <File>
+              <FileName>STC32G_EEPROM.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\Libraries\deivers\inc\STC32G_EEPROM.h</FilePath>
+            </File>
+            <File>
+              <FileName>STC32G_EEPROM.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\Libraries\deivers\src\STC32G_EEPROM.c</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

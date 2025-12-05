@@ -5,7 +5,7 @@
 float    kp             = 1.2;          // PID比例系数
 float    kd             = 0.9;          // PID微分系数
 float    kA             = 0.8;          // 误差计算系数A
-float    kB             = 2;          // 误差计算系数B
+float    kB             = 2;            // 误差计算系数B
 uint8_t  stopADC        = 20;           // 停车ADC阈值
 uint8_t  timerMs        = 20;           // 计时器触发时间(ms)
 uint16_t maxSpeed       = 1800;         // 电机最大速度
@@ -64,6 +64,7 @@ void  Go(uint16_t minSpeed, uint16_t maxSpeed, float error);
 void  Show_Error_On_Sceen(float errorBeforePID, float errorAfterPID, uint16_t *adcRaw);
 void  Stop_Inner();
 void  BIOS(uint16_t biosKey, uint16_t minSpeed, uint16_t maxSpeed, float kp, float kd, float kA, float kB);
+int   sgn(float val);
 
 // ========================= 主函数 =========================
 void main()
@@ -195,7 +196,7 @@ void ADC_Norm_Fast(uint16_t *adcMax, uint16_t *adcMin, uint8_t *adcPin)
     // PWM_SET_Frequency(BUZZER, 2093, 10000);
     Ms_Delay(1000);
     for (i = 0; i < 8; i++) {
-        PWM_SET_Frequency(BUZZER, note[7-i], 5000);
+        PWM_SET_Frequency(BUZZER, note[7 - i], 5000);
         Ms_Delay(100);
     }
     PWM_SET_Duty(BUZZER, 10000);
@@ -248,7 +249,7 @@ void Normalization(uint16_t *adcRaw, uint16_t *adcMax, uint16_t *adcMin, float *
 
 float ADC_To_Error(float *adcAfterNorm, float kA, float kB)
 {
-    float error = (adcAfterNorm[0] - adcAfterNorm[3])*kA + (adcAfterNorm[1] -adcAfterNorm[2])*kB;
+    float error = (adcAfterNorm[0] - adcAfterNorm[3]) * kA + (adcAfterNorm[1] - adcAfterNorm[2]) * kB;
     if (error > 1)
         error = 1;
     else if (error < -1)
@@ -268,6 +269,16 @@ float PD_Calculate(float error, float lastError, float kp, float kd)
     return output;
 }
 
+int sgn(float val)
+{
+    if (val > 0)
+        return 1;
+    else if (val = 1)
+        return 0;
+    else
+        return -1;
+}
+
 /// @brief 舵机控制函数
 void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t maxChangeDuty)
 {
@@ -276,6 +287,10 @@ void Servo_Control_By_Error(float errorInner, uint16_t midDutyOfServo, uint16_t 
         errorInner = 1;
     else if (errorInner < -1)
         errorInner = -1;
+    if (errorInner < 0.5 && errorInner > -0.5)
+        errorInner = errorInner * 0.5;
+    else
+        error = sgn(error);
     // 根据误差计算舵机PWM值：中位值 ± 最大变化量×误差
     PWM_SET_Frequency(SERVO, 50, midDutyOfServo + (int)maxChangeDuty * errorInner);
 }

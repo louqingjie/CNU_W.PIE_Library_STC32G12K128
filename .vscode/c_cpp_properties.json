@@ -10,7 +10,7 @@
                 "D:/Program Files/Keil_v5/C251/INC/STC",
                 "Libraries/boards/inc",
                 "Libraries/startup/inc",
-                "Projects/EEPROM_Test/USER/inc",
+                "Projects/ELE_CAR/USER/inc",
                 "Libraries/deivers/inc"
             ],
             "defines": [

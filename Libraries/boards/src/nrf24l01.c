@@ -17,7 +17,7 @@ typedef enum
 uint8_t Channal = 0;
 int RecFPS = 0;
 
-#define CHANAL          52                              //Ƶ��ѡ��
+#define CHANAL             36                           //Ƶ��ѡ��
 
 uint8_t TX_ADDRESS[5] = {'R', 'C', 'T', 'L', 0 }; //���͵�ַ
 uint8_t RX_ADDRESS[5] = {'R', 'C', 'T', 'L', 0 }; //���յ�ַ

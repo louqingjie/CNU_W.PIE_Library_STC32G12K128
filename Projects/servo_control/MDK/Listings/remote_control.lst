@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  remote_control                                                     28/11/25  17:21:30  PAGE 1   
+C251 COMPILER V5.60.0,  remote_control                                                     04/12/25  11:06:05  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE remote_control
@@ -66,7 +66,7 @@ stmt  level    source
    55          *@param 显示名字长度 最大为5个字符 
    56          *@param 显示数据
    57          *@param 位于遥控器的行数 0-5 共6行 否则不显示
-C251 COMPILER V5.60.0,  remote_control                                                     28/11/25  17:21:30  PAGE 2   
+C251 COMPILER V5.60.0,  remote_control                                                     04/12/25  11:06:05  PAGE 2   
 
    58          *@param 显示大小 (0) 以6*8大小显示 (!0)以8*16大小显示
    59          *@example ShowStringData("abc", 3, 2.55, 0, 1);
@@ -134,7 +134,7 @@ stmt  level    source
   121          */
   122          int16_t RcRockerValueRead(ROCKER_OFFSET_t offset)
   123          {
-C251 COMPILER V5.60.0,  remote_control                                                     28/11/25  17:21:30  PAGE 3   
+C251 COMPILER V5.60.0,  remote_control                                                     04/12/25  11:06:05  PAGE 3   
 
   124   1        return rc_ctrl.rocker.value[offset];
   125   1      }

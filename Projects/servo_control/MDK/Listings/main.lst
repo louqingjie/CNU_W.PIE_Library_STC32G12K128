@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  main                                                               28/11/25  17:31:24  PAGE 1   
+C251 COMPILER V5.60.0,  main                                                               04/12/25  11:06:05  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE main
@@ -10,25 +10,98 @@ COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\USER\src\main
 stmt  level    source
 
     1          #include "main.h"
-    2          void main()
-    3          {
-    4   1        Board_Init(); // 开发板初始化
-    5   1        PWM_Init(PWMB_CH1_P74, 50, 722);
-    6   1        while (1) {
-    7   2        }
-    8   1      }
+    2          /*帧头帧尾，内部调用，无需关心*/
+    3          #define COMM_HEADER_1 0xAB
+    4          #define COMM_HEADER_2 0xBC
+    5          #define COMM_END_1 0xCD
+    6          #define COMM_END_2 0xDE
+    7          /*命令码*/
+    8          #define Init_Order 0xAA        // 初始化模式
+    9          #define Duty_Change_Order 0xBB // 修改占空比
+   10          #define Freq_Change_Order 0xCC // 修改频率
+   11          #define Dir_Change_Order 0xDD  // 修改方向 1为正 0为负 设置一次即可
+   12          #define Zero_Order 0xEE        // 0命令
+   13          /*内部调用变量，无需关心，请勿定义同名变量*/
+   14          uint16_t control_data[8] = {0};
+   15          uint16_t motor_dir[8]    = {0};
+   16          uint8_t  control_command = 0x00;
+   17          /********************************************************************************************************
+             -******************
+   18           * @brief  板间通信函数，用于主控给拓展版发送
+   19           * @exampleCode
+   20           * ExpansionBoradControl(Init_Order, 50, 50, 50, 50, 10000, 10000, 10000);//初始化模式
+   21           * @explain  初始化模式后是各个引脚的频率，50为舵机或摩擦轮，10000为电机
+   22           *           修改占空比的模式后参数写设置的占空比，以此类推，写NULL则维持之�
+             -��状态，该引脚的动力源相关参数不被改变
+   23           * @param[in]  control_cmd 发送的内容
+   24           * @param[in]  data_pxx  xx引脚的频率/占空比/方向
+   25           ********************************************************************************************************
+             -*******************/
+   26          void ExpansionBoradControl(uint8_t control_cmd, uint16_t data_p60, uint16_t data_p62, uint16_t data_p64,
+   27                                     uint16_t data_p66, uint16_t data_p74, uint16_t data_p75, uint16_t data_p76,
+   28                                     uint16_t data_p77)
+   29          {
+   30   1          uint8_t i = 0;
+   31   1          // 通信数据帧
+   32   1          uint8_t control_frame_pack[21] = {0};
+   33   1          // 帧头帧尾
+   34   1          control_frame_pack[0]  = COMM_HEADER_1;
+   35   1          control_frame_pack[1]  = COMM_HEADER_2;
+   36   1          control_frame_pack[19] = COMM_END_1;
+   37   1          control_frame_pack[20] = COMM_END_2;
+   38   1          // 指令
+   39   1          control_frame_pack[2] = control_cmd;
+   40   1          // 数据
+   41   1          control_frame_pack[3]  = (uint8_t)((data_p60 >> 8) & 0xFF);
+   42   1          control_frame_pack[4]  = (uint8_t)(data_p60 & 0xFF);
+   43   1          control_frame_pack[5]  = (uint8_t)((data_p62 >> 8) & 0xFF);
+   44   1          control_frame_pack[6]  = (uint8_t)(data_p62 & 0xFF);
+   45   1          control_frame_pack[7]  = (uint8_t)((data_p64 >> 8) & 0xFF);
+   46   1          control_frame_pack[8]  = (uint8_t)(data_p64 & 0xFF);
+   47   1          control_frame_pack[9]  = (uint8_t)((data_p66 >> 8) & 0xFF);
+   48   1          control_frame_pack[10] = (uint8_t)(data_p66 & 0xFF);
+   49   1          control_frame_pack[11] = (uint8_t)((data_p74 >> 8) & 0xFF);
+   50   1          control_frame_pack[12] = (uint8_t)(data_p74 & 0xFF);
+   51   1          control_frame_pack[13] = (uint8_t)((data_p75 >> 8) & 0xFF);
+   52   1          control_frame_pack[14] = (uint8_t)(data_p75 & 0xFF);
+   53   1          control_frame_pack[15] = (uint8_t)((data_p76 >> 8) & 0xFF);
+   54   1          control_frame_pack[16] = (uint8_t)(data_p76 & 0xFF);
+C251 COMPILER V5.60.0,  main                                                               04/12/25  11:06:05  PAGE 2   
+
+   55   1          control_frame_pack[17] = (uint8_t)((data_p77 >> 8) & 0xFF);
+   56   1          control_frame_pack[18] = (uint8_t)(data_p77 & 0xFF);
+   57   1      
+   58   1          // 发送
+   59   1          // UART_PutBuff(UART_1, control_frame_pack, 21);
+   60   1          for (i = 0; i < 21; i++)
+   61   1              UART_PutChar(UART_1, control_frame_pack[i]);
+   62   1      }
+   63          
+   64          void main()
+   65          {
+   66   1          Board_Init(); // 开发板初始化
+   67   1          PWM_Init(PWMB_CH1_P74, 50, 750);
+   68   1          PWM_Init(PWMB_CH4_P03, 50, 750);
+   69   1          ExpansionBoradControl(Init_Order, 50, 50, 50, 50, 10000, 10000, 10000, 10000);
+   70   1          while (1) {
+   71   2              ExpansionBoradControl(Duty_Change_Order, 750, 750, 750, 750, 0, 0, 0, 0);
+   72   2          Ms_Delay(10);
+   73   2          PWM_SET_Duty(PWMB_CH1_P74, 750);
+   74   2          PWM_SET_Duty(PWMB_CH4_P03, 750);
+   75   2          }
+   76   1      }
 
 
 Module Information          Static   Overlayable
 ------------------------------------------------
-  code size            =        24     ------
+  code size            =       318     ------
   ecode size           =    ------     ------
   data size            =    ------     ------
   idata size           =    ------     ------
   pdata size           =    ------     ------
   xdata size           =    ------     ------
   xdata-const size     =    ------     ------
-  edata size           =    ------     ------
+  edata size           =        33         29
   bit size             =    ------     ------
   ebit size            =    ------     ------
   bitaddressable size  =    ------     ------
@@ -36,7 +109,7 @@ Module Information          Static   Overlayable
   far data size        =    ------     ------
   huge data size       =    ------     ------
   const size           =    ------     ------
-  hconst size          =    ------     ------
+  hconst size          =        66     ------
 End of Module Information.
 
 

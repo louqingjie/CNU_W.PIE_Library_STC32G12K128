@@ -1,0 +1,355 @@
+C251 COMPILER V5.60.0,  main                                                               04/12/25  20:35:49  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE main
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\USER\src\main.c XSMALL BROWSE INCDIR(..\..\..\Librari
+                    -es\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG PRINT(.\Listings\main.lst
+                    -) TABS(2) OBJECT(.\Objects\main.obj) 
+
+stmt  level    source
+
+    1          // 步兵机器人操作代码
+    2          #include "main.h"
+    3          #include "MATH.H"
+    4          // ========================= 参数区 =========================
+    5          uint16_t maxSpeed                   = 4000;
+    6          uint16_t ultraSpeed                 = 8000;
+    7          uint16_t deadBandOfLeft             = 10;         // 左摇杆中心死区
+    8          uint16_t deadBandOfRight            = 10;         // 右摇杆中心死区
+    9          uint16_t midDutyOfServo[2]          = {750, 750}; // 分别为云台水平舵机、云台垂直舵机
+   10          uint16_t maxChangeDutyOfServo[2]    = {200, 200}; // 同上
+   11          uint16_t singleChangeDutyOfServo[2] = {10, 10};   // 按下按键单次占空比改变量
+   12          uint16_t singleChangeDutyOfBooster  = 100;        // 按下按键单次占空比改变量
+   13          uint16_t maxDutyOfBooster           = 1100;       // 摩擦轮最大占空比
+   14          float    changeRateOfServo[2]       = {0.01, 0.01};
+   15          
+   16          #define LIMIT_VALUE(x, min, max) \
+   17              do {                         \
+   18                  if ((x) < (min))         \
+   19                      (x) = (min);         \
+   20                  else if ((x) > (max))    \
+   21                      (x) = (max);         \
+   22              } while (0)
+   23          /*帧头帧尾，内部调用，无需关心*/
+   24          #define COMM_HEADER_1 0xAB
+   25          #define COMM_HEADER_2 0xBC
+   26          #define COMM_END_1 0xCD
+   27          #define COMM_END_2 0xDE
+   28          /*命令码*/
+   29          #define Init_Order 0xAA        // 初始化模式
+   30          #define Duty_Change_Order 0xBB // 修改占空比
+   31          #define Freq_Change_Order 0xCC // 修改频率
+   32          #define Dir_Change_Order 0xDD  // 修改方向 1为正 0为负 设置一次即可
+   33          #define Zero_Order 0xEE        // 0命令
+   34          /*内部调用变量，无需关心，请勿定义同名变量*/
+   35          uint16_t control_data[8] = {0};
+   36          uint16_t motor_dir[8]    = {0};
+   37          uint8_t  control_command = 0x00;
+   38          // 自定义变量
+   39          float                floatDutyOfServo[2]; // 云台舵机
+   40          uint16_t             dutyOfServo[2];
+   41          int                  dutyOfMotor[5]; // 四个底盘电机，供弹电机
+   42          uint16_t             dutyOfBooster = 0, expectDutyOfBooster = 0;
+   43          uint8_t              valueOfKey[3][4];
+   44          uint8_t              valueOfRKey, lastValueOfRKey, statusOfBooster = 0;
+   45          uint8_t              i, j;
+   46          int                  valueOfRoker[2][2],baseSpeed, turnSpeed;
+   47          static const uint8_t keyOffsets[3][4] = {
+   48              {KEY_OFFSET_UP, KEY_OFFSET_DOWN, KEY_OFFSET_LEFT, KEY_OFFSET_RIGHT},
+   49              {KEY_OFFSET_A, KEY_OFFSET_B, KEY_OFFSET_C, KEY_OFFSET_D},
+   50              {KEY_OFFSET_Rocker11, KEY_OFFSET_Rocker21, 0, 0} // 实际只有2个
+   51          };
+   52          
+   53          void    All_Init();
+   54          void    ReadControllerInputs();
+   55          void    CalculateMotorControls();
+   56          void    CalculateGimbalControls();
+   57          void    CalculateBoosterControl();
+C251 COMPILER V5.60.0,  main                                                               04/12/25  20:35:49  PAGE 2   
+
+   58          uint8_t Get_Dir(int rawdata);
+   59          void    Main_Countrol(int *dutyOfMotor, uint16_t *dutyOfServo, uint16_t dutyOfBooster);
+   60          void    ExpansionBoradControl(uint8_t control_cmd, uint16_t data_p60, uint16_t data_p62, uint16_t data_p6
+             -4,
+   61                                        uint16_t data_p66, uint16_t data_p74, uint16_t data_p75, uint16_t data_p76,
+   62                                        uint16_t data_p77);
+   63          
+   64          void main()
+   65          {
+   66   1          All_Init();
+   67   1          floatDutyOfServo[0] = midDutyOfServo[0];
+   68   1          floatDutyOfServo[1] = midDutyOfServo[1];
+   69   1          while (1) {
+   70   2              // 测试手柄连接状态
+   71   2              if (RcKeyValueRead(KEY_OFFSET_UP))
+   72   2                  GPIO_Write_Bit(GPIO_P3, GPIO_Pin_7, 0);
+   73   2              else
+   74   2                  GPIO_Write_Bit(GPIO_P3, GPIO_Pin_7, 1);
+   75   2      
+   76   2              ReadControllerInputs();    // 统一读取输入
+   77   2              CalculateMotorControls();  // 计算电机控制
+   78   2              CalculateGimbalControls(); // 计算云台控制
+   79   2              CalculateBoosterControl(); // 计算摩擦轮控制
+   80   2              LIMIT_VALUE(dutyOfMotor[0], -10000, 10000);
+   81   2              LIMIT_VALUE(dutyOfMotor[1], -10000, 10000);
+   82   2              LIMIT_VALUE(dutyOfMotor[2], -10000, 10000);
+   83   2              LIMIT_VALUE(dutyOfMotor[3], -10000, 10000);
+   84   2              LIMIT_VALUE(dutyOfMotor[4], 0, 10000);
+   85   2              LIMIT_VALUE(floatDutyOfServo[0], 250, 1250);
+   86   2              LIMIT_VALUE(dutyOfServo[1], 250, 1250);
+   87   2      
+   88   2              // 平滑占空比变化
+   89   2              if (expectDutyOfBooster > 500 && dutyOfBooster < 500)
+   90   2                  dutyOfBooster = 500;
+   91   2      
+   92   2              if (dutyOfBooster + 2 <= expectDutyOfBooster)
+   93   2                  dutyOfBooster += 2;
+   94   2              else if (dutyOfBooster < expectDutyOfBooster)
+   95   2                  dutyOfBooster++;
+   96   2              else if (dutyOfBooster - 2 >= expectDutyOfBooster)
+   97   2                  dutyOfBooster -= 2;
+   98   2              else if (dutyOfBooster > expectDutyOfBooster)
+   99   2                  dutyOfBooster--;
+  100   2              else
+  101   2                  dutyOfBooster = expectDutyOfBooster;
+  102   2      
+  103   2              // 发送控制函数
+  104   2              Main_Countrol(dutyOfMotor, dutyOfServo, dutyOfBooster);
+  105   2              Ms_Delay(10);
+  106   2          }
+  107   1      }
+  108          
+  109          // void PIT0_Activated() interrupt TMR0_VECTOR
+  110          // {
+  111          //     PIT_Timer_Clear(TIM0);
+  112          //     // 限幅
+  113          
+  114          // }
+  115          
+  116          uint8_t Get_Dir(int rawdata)
+  117          {
+  118   1          if (rawdata >= 0)
+  119   1              return 1;
+  120   1          else
+  121   1              return 0;
+  122   1      }
+C251 COMPILER V5.60.0,  main                                                               04/12/25  20:35:49  PAGE 3   
+
+  123          
+  124          void All_Init()
+  125          {
+  126   1          Board_Init();
+  127   1          GPIO_Init(GPIO_P3, GPIO_Pin_4, GPIO_OUT_PP);
+  128   1          GPIO_Write_Bit(GPIO_P3, GPIO_Pin_4, 0);
+  129   1          remote_control_init();
+  130   1          GPIO_Write_Bit(GPIO_P3, GPIO_Pin_4, 1);
+  131   1          UART_Init(UART_1, UART1_RX_P30, UART1_TX_P31, 230400, TIM1);
+  132   1          ExpansionBoradControl(Init_Order,
+  133   1                                10000, 50,
+  134   1                                50, 50,
+  135   1                                10000, 10000,
+  136   1                                10000, 10000); // 供弹电机、空、摩擦轮L，摩擦轮R、左前轮、�
+             -�后轮、右前轮、右后轮
+  137   1          Ms_Delay(20);
+  138   1          PWM_Init(PWMB_CH1_P74, 50, midDutyOfServo[0]); // 云台水平舵机
+  139   1          PWM_Init(PWMB_CH4_P03, 50, midDutyOfServo[1]); // 云台垂直舵机
+  140   1          // PIT_Timer_Ms(TIM0, 20);
+  141   1      }
+  142          
+  143          void ReadControllerInputs()
+  144          {
+  145   1          // 摇杆读数读取
+  146   1          valueOfRoker[0][0] = RcRockerValueRead(ROCKER_LEFT_HORIZONTAL);
+  147   1          valueOfRoker[0][1] = RcRockerValueRead(ROCKER_LEFT_VERTICAL);
+  148   1          valueOfRoker[1][0] = RcRockerValueRead(ROCKER_RIGHT_HORIZONTAL);
+  149   1          valueOfRoker[1][1] = RcRockerValueRead(ROCKER_RIGHT_VERTICAL);
+  150   1          // 死区过滤
+  151   1          if (valueOfRoker[0][0] <= deadBandOfLeft)
+  152   1              valueOfRoker[0][0] = 0;
+  153   1          if (valueOfRoker[0][1] <= deadBandOfLeft)
+  154   1              valueOfRoker[0][1] = 0;
+  155   1          if (valueOfRoker[1][0] <= deadBandOfRight)
+  156   1              valueOfRoker[1][0] = 0;
+  157   1          if (valueOfRoker[1][1] <= deadBandOfRight)
+  158   1              valueOfRoker[1][1] = 0;
+  159   1      
+  160   1          for (i = 0; i < 3; i++) {
+  161   2              for (j = 0; j < 4; j++) {
+  162   3                  if (i == 2 && j >= 2)
+  163   3                      break; // 第三行只有2个按键
+  164   3                  valueOfKey[i][j] = RcKeyValueRead(keyOffsets[i][j]);
+  165   3              }
+  166   2          }
+  167   1          valueOfRKey = RcKeyValueRead(KEY_OFFSET_1);
+  168   1      }
+  169          
+  170          void CalculateMotorControls()
+  171          {
+  172   1          if (valueOfKey[2][0]) {
+  173   2              baseSpeed = (int)((float)valueOfRoker[0][1] * ultraSpeed / 2047);
+  174   2              turnSpeed = -(int)((float)valueOfRoker[0][0] * ultraSpeed / 2047);
+  175   2      
+  176   2          } else {
+  177   2              baseSpeed = (int)((float)valueOfRoker[0][1] * maxSpeed / 2047);
+  178   2              turnSpeed = -(int)((float)valueOfRoker[0][0] * maxSpeed / 2047);
+  179   2          }
+  180   1      
+  181   1          if (valueOfKey[0][0] == 1)
+  182   1              baseSpeed = ultraSpeed;
+  183   1          if (valueOfKey[0][1] == 1)
+  184   1              baseSpeed = -ultraSpeed;
+*** WARNING C115 IN LINE 184 OF ..\USER\src\main.c: '-' applied to unsigned type, result still unsigned
+  185   1          if (valueOfKey[0][2] == 1)
+  186   1              turnSpeed = -ultraSpeed;
+C251 COMPILER V5.60.0,  main                                                               04/12/25  20:35:49  PAGE 4   
+
+*** WARNING C115 IN LINE 186 OF ..\USER\src\main.c: '-' applied to unsigned type, result still unsigned
+  187   1          if (valueOfKey[0][3] == 1)
+  188   1              turnSpeed = ultraSpeed;
+  189   1      
+  190   1          dutyOfMotor[0] = -baseSpeed - turnSpeed;
+  191   1          dutyOfMotor[1] = -baseSpeed - turnSpeed;
+  192   1          dutyOfMotor[2] = baseSpeed - turnSpeed;
+  193   1          dutyOfMotor[3] = baseSpeed - turnSpeed;
+  194   1      
+  195   1          // 供弹电机控制值计算
+  196   1          if (valueOfKey[1][0])
+  197   1              dutyOfMotor[4] += 50;
+  198   1          if (valueOfKey[1][3])
+  199   1              dutyOfMotor[4] = 0;
+  200   1      }
+  201          
+  202          void CalculateBoosterControl()
+  203          {
+  204   1          // 摩擦轮占空比计算
+  205   1          if (valueOfKey[1][1])
+  206   1              expectDutyOfBooster += singleChangeDutyOfBooster;
+  207   1          else if (valueOfKey[1][2])
+  208   1              expectDutyOfBooster -= singleChangeDutyOfBooster;
+  209   1      
+  210   1          if (valueOfRKey && !lastValueOfRKey) {  // 检测上升沿
+  211   2              statusOfBooster = !statusOfBooster; // 翻转状态
+  212   2          }
+  213   1      
+  214   1          if (statusOfBooster)
+  215   1              expectDutyOfBooster = maxDutyOfBooster;
+  216   1          else
+  217   1              expectDutyOfBooster = 0;
+  218   1      
+  219   1          lastValueOfRKey = valueOfRKey;
+  220   1      }
+  221          
+  222          void CalculateGimbalControls()
+  223          {
+  224   1          // 云台舵机控制值计算
+  225   1          floatDutyOfServo[0] += valueOfRoker[1][0] * changeRateOfServo[0];
+  226   1          floatDutyOfServo[1] += valueOfRoker[1][1] * changeRateOfServo[1];
+  227   1          dutyOfServo[0] = (uint16_t)floatDutyOfServo[0];
+  228   1          dutyOfServo[1] = (uint16_t)floatDutyOfServo[1];
+  229   1      }
+  230          
+  231          void Main_Countrol(int *dutyOfMotor, uint16_t *dutyOfServo, uint16_t dutyOfBooster)
+  232          {
+  233   1          ExpansionBoradControl(Dir_Change_Order,
+  234   1                                1, 1,
+  235   1                                1, 1,
+  236   1                                Get_Dir(dutyOfMotor[0]), Get_Dir(dutyOfMotor[1]),
+  237   1                                Get_Dir(dutyOfMotor[2]), Get_Dir(dutyOfMotor[3]));
+  238   1          Ms_Delay(5);
+  239   1          ExpansionBoradControl(Duty_Change_Order, dutyOfMotor[4], 10000,
+  240   1                                dutyOfBooster, dutyOfBooster,
+  241   1                                (uint16_t)abs(dutyOfBooster*9), (uint16_t)abs(dutyOfMotor[1]),
+  242   1                                (uint16_t)abs(dutyOfMotor[2]), (uint16_t)abs(dutyOfMotor[3]));
+  243   1          Ms_Delay(5);
+  244   1          PWM_SET_Frequency(PWMB_CH1_P74, 50,dutyOfServo[0]);
+  245   1          PWM_SET_Frequency(PWMB_CH4_P03, 50,dutyOfServo[1]);
+  246   1      }
+  247          /********************************************************************************************************
+             -******************
+  248           * @brief  板间通信函数，用于主控给拓展版发送
+  249           * @exampleCode
+  250           * ExpansionBoradControl(Init_Order, 50, 50, 50, 50, 10000, 10000, 10000);//初始化模式
+C251 COMPILER V5.60.0,  main                                                               04/12/25  20:35:49  PAGE 5   
+
+  251           * @explain  初始化模式后是各个引脚的频率，50为舵机或摩擦轮，10000为电机
+  252           *           修改占空比的模式后参数写设置的占空比，以此类推，写NULL则维持之�
+             -��状态，该引脚的动力源相关参数不被改变
+  253           * @param[in]  control_cmd 发送的内容
+  254           * @param[in]  data_pxx  xx引脚的频率/占空比
+  255           ********************************************************************************************************
+             -*******************/
+  256          
+  257          /// @brief 板间通信函数，用于主 控给拓展版发送
+  258          /// @param control_cmd
+  259          /// @param data_p60 供弹电机
+  260          /// @param data_p62 空
+  261          /// @param data_p64 摩擦轮L
+  262          /// @param data_p66 摩擦轮R
+  263          /// @param data_p74 左前电机
+  264          /// @param data_p75 左后电机
+  265          /// @param data_p76 右前电机
+  266          /// @param data_p77 右后电机
+  267          void ExpansionBoradControl(uint8_t control_cmd, uint16_t data_p60, uint16_t data_p62, uint16_t data_p64,
+  268                                     uint16_t data_p66, uint16_t data_p74, uint16_t data_p75, uint16_t data_p76,
+  269                                     uint16_t data_p77)
+  270          {
+  271   1          uint8_t i = 0;
+  272   1          // 通信数据帧
+  273   1          uint8_t control_frame_pack[21] = {0};
+  274   1          // 帧头帧尾
+  275   1          control_frame_pack[0]  = COMM_HEADER_1;
+  276   1          control_frame_pack[1]  = COMM_HEADER_2;
+  277   1          control_frame_pack[19] = COMM_END_1;
+  278   1          control_frame_pack[20] = COMM_END_2;
+  279   1          // 指令
+  280   1          control_frame_pack[2] = control_cmd;
+  281   1          // 数据
+  282   1          control_frame_pack[3]  = (uint8_t)((data_p60 >> 8) & 0xFF);
+  283   1          control_frame_pack[4]  = (uint8_t)(data_p60 & 0xFF);
+  284   1          control_frame_pack[5]  = (uint8_t)((data_p62 >> 8) & 0xFF);
+  285   1          control_frame_pack[6]  = (uint8_t)(data_p62 & 0xFF);
+  286   1          control_frame_pack[7]  = (uint8_t)((data_p64 >> 8) & 0xFF);
+  287   1          control_frame_pack[8]  = (uint8_t)(data_p64 & 0xFF);
+  288   1          control_frame_pack[9]  = (uint8_t)((data_p66 >> 8) & 0xFF);
+  289   1          control_frame_pack[10] = (uint8_t)(data_p66 & 0xFF);
+  290   1          control_frame_pack[11] = (uint8_t)((data_p74 >> 8) & 0xFF);
+  291   1          control_frame_pack[12] = (uint8_t)(data_p74 & 0xFF);
+  292   1          control_frame_pack[13] = (uint8_t)((data_p75 >> 8) & 0xFF);
+  293   1          control_frame_pack[14] = (uint8_t)(data_p75 & 0xFF);
+  294   1          control_frame_pack[15] = (uint8_t)((data_p76 >> 8) & 0xFF);
+  295   1          control_frame_pack[16] = (uint8_t)(data_p76 & 0xFF);
+  296   1          control_frame_pack[17] = (uint8_t)((data_p77 >> 8) & 0xFF);
+  297   1          control_frame_pack[18] = (uint8_t)(data_p77 & 0xFF);
+  298   1      
+  299   1          // 发送
+  300   1          // UART_PutBuff(UART_1, control_frame_pack, 21);
+  301   1          for (i = 0; i < 21; i++)
+  302   1              UART_PutChar(UART_1, control_frame_pack[i]);
+  303   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =      1638     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =       120         39
+C251 COMPILER V5.60.0,  main                                                               04/12/25  20:35:49  PAGE 6   
+
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =       167     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  2 WARNING(S),  0 ERROR(S)

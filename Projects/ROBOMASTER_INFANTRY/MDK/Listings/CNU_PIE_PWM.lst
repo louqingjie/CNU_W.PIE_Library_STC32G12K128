@@ -1,0 +1,299 @@
+C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        26/11/25  09:58:38  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE CNU_PIE_PWM
+OBJECT MODULE PLACED IN .\Objects\CNU_PIE_PWM.obj
+COMPILER INVOKED BY: D:\Program Files\Keil_v5\C251\BIN\C251.EXE ..\..\..\Libraries\deivers\src\CNU_PIE_PWM.c XSMALL BROW
+                    -SE INCDIR(..\..\..\Libraries\boards\inc;..\..\..\Libraries\startup\inc;..\USER\inc;..\..\..\Libraries\deivers\inc) DEBUG
+                    - PRINT(.\Listings\CNU_PIE_PWM.lst) TABS(2) OBJECT(.\Objects\CNU_PIE_PWM.obj) 
+
+stmt  level    source
+
+    1          /********************************************************************************************************
+             -*************
+    2           *     COPYRIGHT NOTICE
+    3           *     Copyright (c) 2023,CNU_W.PIE
+    4           *     All rights reserved.
+    5           *     本库函数参考逐飞科技开源的STC函数库
+    6           *     除注明出处外，以下所有内容版权均属胖胖个人所有，未经允许，不得用于商业用途，
+    7           *     修改内容时必须保留PP的版权声明。
+    8           *     Except where indicated, the copyright of all the contents below is owned by PP 
+    9           *     and can not be used for commercial purposes without permission. 
+   10           *     The copyright notice of PP must be preserved when modifying the content.
+   11           *
+   12           * @file       CNU_PIE_PWM.c
+   13           * @brief      PWM
+   14           * @author     胖胖
+   15           * @version    v1.1
+   16           * @note       NULL
+   17           * @date       2023-07-26
+   18           ********************************************************************************************************
+             -************/
+   19          #include "CNU_PIE_PWM.h"
+   20          #include "CNU_PIE_GPIO.h"
+   21          
+   22          //捕获比较模式寄存器
+   23          const uint32_t PWM_CCMR_ADDR[] = {0x7efec8, 0x7efec9, 0x7efeca ,0x7efecb, 0x7efee8, 0x7efee9, 0x7efeea, 0
+             -x7efeeb};
+   24          //捕获比较使能寄存器
+   25          const uint32_t PWM_CCER_ADDR[] = {0x7efecc, 0x7efecd, 0x7efeec ,0x7efeed};
+   26          //控制寄存器,高8位地址  低8位地址 + 1即可
+   27          const uint32_t PWM_CCR_ADDR[] = {0x7efed5, 0x7efed7, 0x7efed9, 0x7efedb, 0x7efef5, 0x7efef7, 0x7efef9, 0x
+             -7efefb};  
+   28          //控制寄存器,高8位地址  低8位地址 + 1即可
+   29          const uint32_t PWM_ARR_ADDR[] = {0x7efed2,0x7efef2};
+   30          
+   31           /*******************************************************************************************************
+             -*******************
+   32           * @brief  初始化PWM引脚IO模式
+   33           * @brief  内部调用，无需关心
+   34          *********************************************************************************************************
+             -******************/
+   35          void PWM_PIN_SET(PWM_CHN_PIN_enum PWM_CHN_PIN)
+   36          {
+   37   1        switch(PWM_CHN_PIN)
+   38   1        {
+   39   2          case PWMA_CH1P_P10: GPIO_Init(GPIO_P1,GPIO_Pin_0,GPIO_OUT_PP); break;
+   40   2          case PWMA_CH1N_P11: GPIO_Init(GPIO_P1,GPIO_Pin_1,GPIO_OUT_PP); break;
+   41   2          case PWMA_CH1P_P20: GPIO_Init(GPIO_P2,GPIO_Pin_0,GPIO_OUT_PP); break;
+   42   2          case PWMA_CH1N_P21: GPIO_Init(GPIO_P2,GPIO_Pin_1,GPIO_OUT_PP); break;
+   43   2          case PWMA_CH1P_P60: GPIO_Init(GPIO_P6,GPIO_Pin_0,GPIO_OUT_PP); break;
+   44   2          case PWMA_CH1N_P61: GPIO_Init(GPIO_P6,GPIO_Pin_1,GPIO_OUT_PP); break;   
+   45   2          case PWMA_CH2P_P12: GPIO_Init(GPIO_P1,GPIO_Pin_2,GPIO_OUT_PP); break;
+   46   2          case PWMA_CH2N_P13: GPIO_Init(GPIO_P1,GPIO_Pin_3,GPIO_OUT_PP); break;
+   47   2          case PWMA_CH2P_P22: GPIO_Init(GPIO_P2,GPIO_Pin_2,GPIO_OUT_PP); break;
+   48   2          case PWMA_CH2N_P23: GPIO_Init(GPIO_P2,GPIO_Pin_3,GPIO_OUT_PP); break;
+   49   2          case PWMA_CH2P_P62: GPIO_Init(GPIO_P6,GPIO_Pin_2,GPIO_OUT_PP); break;
+   50   2          case PWMA_CH2N_P63: GPIO_Init(GPIO_P6,GPIO_Pin_3,GPIO_OUT_PP); break;
+   51   2          case PWMA_CH3P_P24: GPIO_Init(GPIO_P2,GPIO_Pin_4,GPIO_OUT_PP); break;
+C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        26/11/25  09:58:38  PAGE 2   
+
+   52   2          case PWMA_CH3N_P25: GPIO_Init(GPIO_P2,GPIO_Pin_5,GPIO_OUT_PP); break;
+   53   2          case PWMA_CH3P_P64: GPIO_Init(GPIO_P6,GPIO_Pin_4,GPIO_OUT_PP); break;
+   54   2          case PWMA_CH3N_P65: GPIO_Init(GPIO_P6,GPIO_Pin_5,GPIO_OUT_PP); break;
+   55   2          case PWMA_CH4P_P16: GPIO_Init(GPIO_P1,GPIO_Pin_6,GPIO_OUT_PP); break;
+   56   2          case PWMA_CH4N_P17: GPIO_Init(GPIO_P1,GPIO_Pin_7,GPIO_OUT_PP); break;
+   57   2          case PWMA_CH4P_P26: GPIO_Init(GPIO_P2,GPIO_Pin_6,GPIO_OUT_PP); break;
+   58   2          case PWMA_CH4N_P27: GPIO_Init(GPIO_P2,GPIO_Pin_7,GPIO_OUT_PP); break;
+   59   2          case PWMA_CH4P_P66: GPIO_Init(GPIO_P6,GPIO_Pin_6,GPIO_OUT_PP); break;
+   60   2          case PWMA_CH4N_P67: GPIO_Init(GPIO_P6,GPIO_Pin_7,GPIO_OUT_PP); break;
+   61   2          case PWMA_CH4P_P34: GPIO_Init(GPIO_P3,GPIO_Pin_4,GPIO_OUT_PP); break;
+   62   2          case PWMA_CH4N_P33: GPIO_Init(GPIO_P3,GPIO_Pin_3,GPIO_OUT_PP); break;
+   63   2          case PWMB_CH1_P20:  GPIO_Init(GPIO_P2,GPIO_Pin_0,GPIO_OUT_PP); break;
+   64   2          case PWMB_CH1_P17:  GPIO_Init(GPIO_P1,GPIO_Pin_7,GPIO_OUT_PP); break;
+   65   2          case PWMB_CH1_P00:  GPIO_Init(GPIO_P0,GPIO_Pin_0,GPIO_OUT_PP); break;
+   66   2          case PWMB_CH1_P74:  GPIO_Init(GPIO_P7,GPIO_Pin_4,GPIO_OUT_PP); break;
+   67   2          case PWMB_CH2_P21:  GPIO_Init(GPIO_P2,GPIO_Pin_1,GPIO_OUT_PP); break;
+   68   2          case PWMB_CH2_P54:  GPIO_Init(GPIO_P5,GPIO_Pin_4,GPIO_OUT_PP); break;
+   69   2          case PWMB_CH2_P01:  GPIO_Init(GPIO_P0,GPIO_Pin_1,GPIO_OUT_PP); break;
+   70   2          case PWMB_CH2_P75:  GPIO_Init(GPIO_P7,GPIO_Pin_5,GPIO_OUT_PP); break;
+   71   2          case PWMB_CH3_P22:  GPIO_Init(GPIO_P2,GPIO_Pin_2,GPIO_OUT_PP); break;
+   72   2          case PWMB_CH3_P33:  GPIO_Init(GPIO_P3,GPIO_Pin_3,GPIO_OUT_PP); break;
+   73   2          case PWMB_CH3_P02:  GPIO_Init(GPIO_P0,GPIO_Pin_2,GPIO_OUT_PP); break;
+   74   2          case PWMB_CH3_P76:  GPIO_Init(GPIO_P7,GPIO_Pin_6,GPIO_OUT_PP); break;
+   75   2          case PWMB_CH4_P23:  GPIO_Init(GPIO_P2,GPIO_Pin_3,GPIO_OUT_PP); break;
+   76   2          case PWMB_CH4_P34:  GPIO_Init(GPIO_P3,GPIO_Pin_4,GPIO_OUT_PP); break;
+   77   2          case PWMB_CH4_P03:  GPIO_Init(GPIO_P0,GPIO_Pin_3,GPIO_OUT_PP); break;
+   78   2          case PWMB_CH4_P77:  GPIO_Init(GPIO_P7,GPIO_Pin_7,GPIO_OUT_PP); break;
+   79   2        }
+   80   1      }
+   81           /*******************************************************************************************************
+             -*******************
+   82           * @brief  PWM引脚初始化
+   83           * @exampleCode
+   84           *      PWM_Init(PWMA_CH2P_P62, 50, 0); //初始化P62引脚 频率50 初始占空比0
+   85           * @endcode
+   86           * @param[in]  PWM_CHN_PIN PWM引脚号 
+   87           * @param[in]  frequency   PWM频率              
+   88           * @param[in]  pwm_duty    PWM占空比
+   89          *********************************************************************************************************
+             -******************/
+   90          void PWM_Init(PWM_CHN_PIN_enum PWM_CHN_PIN , uint32_t frequency , uint32_t pwm_duty)
+   91          {
+   92   1        
+   93   1        uint32_t match_temp;
+   94   1        uint32_t period_temp;
+   95   1        uint16_t Frequency_Division = 0;//分频系输
+   96   1        
+   97   1        P_SW2 |= 0x80;
+   98   1        
+   99   1        //GPIO需要设置为推挽输出
+  100   1        PWM_PIN_SET(PWM_CHN_PIN);//将对应的IO引脚设置为推挽输出
+  101   1        
+  102   1      //  //分频计算，周期计算，占空比计算
+  103   1        Frequency_Division = ( system_clock / frequency ) >> 16;              //多少分频
+  104   1        period_temp = system_clock / frequency ;      
+  105   1        period_temp = period_temp / ( Frequency_Division +1 ) - 1;        //周期
+  106   1      
+  107   1        if(pwm_duty != PRECISION)
+  108   1        {
+  109   2          match_temp = period_temp * ((float)pwm_duty / PRECISION); // 占空比     
+  110   2        }
+  111   1        else
+  112   1        {
+  113   2          match_temp = (period_temp + 1);               // duty为100%
+  114   2        }
+  115   1        if(PWMB_CH1_P20 <= PWM_CHN_PIN)       //PWM5-8
+C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        26/11/25  09:58:38  PAGE 3   
+
+  116   1        {
+  117   2          //通道选择，引脚选择
+  118   2          PWMB_ENO |= (1 << ((2 * ((PWM_CHN_PIN >> 4) - 4))));          //使能通道  
+  119   2          PWMB_PS |= ((PWM_CHN_PIN & 0x03) << ((2 * ((PWM_CHN_PIN >> 4) - 4))));    //输出脚选择
+  120   2          
+  121   2          // 配置通道输出使能和极性 
+  122   2          (*(unsigned char volatile far *) (PWM_CCER_ADDR[PWM_CHN_PIN>>5])) |= (uint8_t)(1 << (((PWM_CHN_PIN >> 4
+             -) & 0x01) * 4));
+  123   2          
+  124   2          //设置预分频
+  125   2          PWMB_PSCRH = (uint8_t)(Frequency_Division>>8);
+  126   2          PWMB_PSCRL = (uint8_t)Frequency_Division;
+  127   2          
+  128   2          PWMB_BKR = 0x80;  //主输出使能 相当于总开关
+  129   2          PWMB_CR1 = 0x01;  //PWM开始计数
+  130   2        }
+  131   1        else
+  132   1        {
+  133   2          PWMA_ENO |= (1 << (PWM_CHN_PIN & 0x01)) << ((PWM_CHN_PIN >> 4) * 2);  //使能通道  
+  134   2          PWMA_PS  |= ((PWM_CHN_PIN & 0x07) >> 1) << ((PWM_CHN_PIN >> 4) * 2);    //输出脚选择
+  135   2          
+  136   2          // 配置通道输出使能和极性 
+  137   2          (*(unsigned char volatile far *) (PWM_CCER_ADDR[PWM_CHN_PIN>>5])) |= (1 << ((PWM_CHN_PIN & 0x01) * 2 + 
+             -((PWM_CHN_PIN >> 4) & 0x01) * 0x04));
+  138   2      
+  139   2          
+  140   2          //设置预分频
+  141   2          PWMA_PSCRH = (uint8_t)(Frequency_Division>>8);
+  142   2          PWMA_PSCRL = (uint8_t)Frequency_Division;
+  143   2      
+  144   2          PWMA_BKR = 0x80;  // 主输出使能 相当于总开关
+  145   2          PWMA_CR1 = 0x01;  //PWM开始计数
+  146   2        }
+  147   1        
+  148   1        //周期
+  149   1        (*(unsigned char volatile far *) (PWM_ARR_ADDR[PWM_CHN_PIN>>6])) = (uint8_t)(period_temp>>8);   //高8位
+  150   1        (*(unsigned char volatile far *) (PWM_ARR_ADDR[PWM_CHN_PIN>>6] + 1)) = (uint8_t)period_temp;    //低8位
+  151   1      
+  152   1        //设置捕获值|比较值
+  153   1        (*(unsigned char volatile far *) (PWM_CCR_ADDR[PWM_CHN_PIN>>4]))    = match_temp>>8;      //高8位
+  154   1        (*(unsigned char volatile far *) (PWM_CCR_ADDR[PWM_CHN_PIN>>4] + 1))  = (uint8_t)match_temp;    //低8位
+  155   1        
+  156   1        //功能设置
+  157   1        (*(unsigned char volatile far *) (PWM_CCMR_ADDR[PWM_CHN_PIN>>4])) |= 0x06<<4;   //设置为PWM模式1
+  158   1        (*(unsigned char volatile far *) (PWM_CCMR_ADDR[PWM_CHN_PIN>>4])) |= 1<<3;    //开启PWM寄存器的预装载功
+  159   1      }
+  160           /*******************************************************************************************************
+             -*******************
+  161           * @brief  PWM引脚设置占空比
+  162           * @exampleCode
+  163           *      PWM_SET_Duty(PWMA_CH2P_P62, 1000); //设置P62引脚 占空比1000
+  164           * @endcode
+  165           * @param[in]  PWM_CHN_PIN PWM引脚号             
+  166           * @param[in]  pwm_duty    PWM占空比
+  167          *********************************************************************************************************
+             -******************/
+  168          void PWM_SET_Duty(PWM_CHN_PIN_enum PWM_CHN_PIN , uint32_t pwm_duty)
+  169          {
+  170   1        uint32_t match_temp;
+  171   1        uint32_t arrange = ((*(unsigned char volatile far *) (PWM_ARR_ADDR[PWM_CHN_PIN>>6]))<<8) | (*(unsigned c
+             -har volatile far *) (PWM_ARR_ADDR[PWM_CHN_PIN>>6] + 1 ));
+  172   1        
+  173   1        P_SW2 |= 0x80;//确定使能访问XFR
+  174   1        
+  175   1        if(pwm_duty != PRECISION)
+  176   1        {
+C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        26/11/25  09:58:38  PAGE 4   
+
+  177   2          match_temp = arrange * ((float)pwm_duty/PRECISION);       //占空比
+  178   2        }
+  179   1        else
+  180   1        {
+  181   2          match_temp = arrange + 1;
+  182   2        }
+  183   1        //设置捕获值|比较值
+  184   1        (*(unsigned char volatile far *) (PWM_CCR_ADDR[PWM_CHN_PIN>>4]))    = match_temp>>8;      //高8位
+  185   1        (*(unsigned char volatile far *) (PWM_CCR_ADDR[PWM_CHN_PIN>>4] + 1))  = (uint8_t)match_temp;    //低8位
+  186   1        
+  187   1      }
+  188           /*******************************************************************************************************
+             -*******************
+  189           * @brief  PWM引脚设置频率
+  190           * @exampleCode
+  191           *      PWM_SET_Frequency (PWMB_CH3_P33,200,5000); //设置P33引脚 频率200 占空比5000
+  192           * @endcode
+  193           * @param[in]  PWM_CHN_PIN PWM引脚号 
+  194           * @param[in]  frequency   PWM频率              
+  195           * @param[in]  pwm_duty    PWM占空比
+  196          *********************************************************************************************************
+             -******************/
+  197          void PWM_SET_Frequency(PWM_CHN_PIN_enum PWM_CHN_PIN, uint32_t frequency, uint32_t pwm_duty )
+  198          {
+  199   1        uint32_t match_temp;
+  200   1        uint32_t period_temp; 
+  201   1        uint16_t Frequency_Division = 0;//分频系输
+  202   1        
+  203   1        P_SW2 |= 0x80;//确定使能访问XFR
+  204   1        
+  205   1        //分频计算，周期计算，占空比计算
+  206   1        Frequency_Division = (FOSC / frequency) >> 16;                  //分频
+  207   1        period_temp = FOSC / frequency ;      
+  208   1        period_temp = period_temp / (Frequency_Division + 1) - 1;       //周期
+  209   1      
+  210   1        if(pwm_duty != PRECISION)//判断占空比是否超最大精度
+  211   1        {
+  212   2          match_temp = period_temp * ((float)pwm_duty / PRECISION); // 占空比     
+  213   2        }
+  214   1        else
+  215   1        {
+  216   2          match_temp = period_temp + 1;                         //否则占空比为最大
+  217   2        }
+  218   1        
+  219   1        if(PWMB_CH1_P20 <= PWM_CHN_PIN)//PWMA
+  220   1        {
+  221   2          //设置预分频
+  222   2          PWMB_PSCRH = (uint8_t)(Frequency_Division>>8);
+  223   2          PWMB_PSCRL = (uint8_t)Frequency_Division;
+  224   2        }
+  225   1        else//PWMB
+  226   1        {
+  227   2          //设置预分频
+  228   2          PWMA_PSCRH = (uint8_t)(Frequency_Division>>8);
+  229   2          PWMA_PSCRL = (uint8_t)Frequency_Division;
+  230   2        }
+  231   1        
+  232   1        //周期
+  233   1        (*(unsigned char volatile far *) (PWM_ARR_ADDR[PWM_CHN_PIN>>6])) = (uint8_t)(period_temp>>8);   //高8位
+  234   1        (*(unsigned char volatile far *) (PWM_ARR_ADDR[PWM_CHN_PIN>>6] + 1)) = (uint8_t)period_temp;    //低8位
+  235   1      
+  236   1        //设置捕获值|比较值
+  237   1        (*(unsigned char volatile far *) (PWM_CCR_ADDR[PWM_CHN_PIN>>4]))    = match_temp>>8;      //高8位
+  238   1        (*(unsigned char volatile far *) (PWM_CCR_ADDR[PWM_CHN_PIN>>4] + 1))  = (uint8_t)match_temp;    //低8位
+  239   1      }
+  240          
+C251 COMPILER V5.60.0,  CNU_PIE_PWM                                                        26/11/25  09:58:38  PAGE 5   
+
+  241          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =      1997     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =    ------         16
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        88     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

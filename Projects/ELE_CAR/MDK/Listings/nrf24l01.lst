@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  nrf24l01                                                           28/11/25  12:50:59  PAGE 1   
+C251 COMPILER V5.60.0,  nrf24l01                                                           05/12/25  17:15:33  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE nrf24l01
@@ -28,7 +28,7 @@ stmt  level    source
    17          uint8_t Channal = 0;
    18          int RecFPS = 0;
    19          
-   20          #define CHANAL          52                              //Ƶ��ѡ��
+   20          #define CHANAL             36                           //Ƶ��ѡ��
    21          
    22          uint8_t TX_ADDRESS[5] = {'R', 'C', 'T', 'L', 0 }; //���͵�ַ
    23          uint8_t RX_ADDRESS[5] = {'R', 'C', 'T', 'L', 0 }; //���յ�ַ
@@ -66,7 +66,7 @@ stmt  level    source
    54          #define OBSERVE_TX  0x08        // 'Observe TX' register address
    55          #define CD          0x09        // 'Carrier Detect' register address
    56          #define RX_ADDR_P0  0x0A        // 'RX address pipe0' register address
-C251 COMPILER V5.60.0,  nrf24l01                                                           28/11/25  12:50:59  PAGE 2   
+C251 COMPILER V5.60.0,  nrf24l01                                                           05/12/25  17:15:33  PAGE 2   
 
    57          #define RX_ADDR_P1  0x0B        // 'RX address pipe1' register address
    58          #define RX_ADDR_P2  0x0C        // 'RX address pipe2' register address
@@ -134,7 +134,7 @@ stmt  level    source
   119   1        //2401�Ĵ�������
   120   1        RF2G4_CE_LOW;              
   121   1        
-C251 COMPILER V5.60.0,  nrf24l01                                                           28/11/25  12:50:59  PAGE 3   
+C251 COMPILER V5.60.0,  nrf24l01                                                           05/12/25  17:15:33  PAGE 3   
 
   122   1        nrf_writereg(NRF_WRITE_REG + SETUP_AW, ADR_WIDTH - 2);          //���õ�ַ����Ϊ TX_ADR_
              -WIDTH
@@ -202,7 +202,7 @@ stmt  level    source
   180   1        nrf_readbuf(reg ,buff, 5);//��ȡУ������
   181   1        
   182   1        RF2G4_CE_HIGH;
-C251 COMPILER V5.60.0,  nrf24l01                                                           28/11/25  12:50:59  PAGE 4   
+C251 COMPILER V5.60.0,  nrf24l01                                                           05/12/25  17:15:33  PAGE 4   
 
   183   1        /*�Ƚ�*/
   184   1        for(i = 0; i < 5; i++)
@@ -270,7 +270,7 @@ stmt  level    source
   243          void nrf_tx_packet(uint8_t* txbuf, uint8_t len)
   244          {
   245   1        uint8_t crc = 0;
-C251 COMPILER V5.60.0,  nrf24l01                                                           28/11/25  12:50:59  PAGE 5   
+C251 COMPILER V5.60.0,  nrf24l01                                                           05/12/25  17:15:33  PAGE 5   
 
   246   1        int i ;
   247   1        if((txbuf == 0) || len <= 0)return;
@@ -338,7 +338,7 @@ stmt  level    source
   309   1      }
   310          
   311          //���ݰ�ѹ������
-C251 COMPILER V5.60.0,  nrf24l01                                                           28/11/25  12:50:59  PAGE 6   
+C251 COMPILER V5.60.0,  nrf24l01                                                           05/12/25  17:15:33  PAGE 6   
 
   312          uint8_t label = 0;
   313          void RCPacket_Send(void)
@@ -406,7 +406,7 @@ stmt  level    source
   374   1        RF2G4_CSN_HIGH;              // ��ֹSPI����  
   375   1      }
   376          
-C251 COMPILER V5.60.0,  nrf24l01                                                           28/11/25  12:50:59  PAGE 7   
+C251 COMPILER V5.60.0,  nrf24l01                                                           05/12/25  17:15:33  PAGE 7   
 
   377          
   378          void nrf_writebuf(uint8_t reg, uint8_t *pBuf, uint16_t len) reentrant
@@ -474,7 +474,7 @@ stmt  level    source
   440   2        {
   441   3          //P2.4�ж�
   442   3        }
-C251 COMPILER V5.60.0,  nrf24l01                                                           28/11/25  12:50:59  PAGE 8   
+C251 COMPILER V5.60.0,  nrf24l01                                                           05/12/25  17:15:33  PAGE 8   
 
   443   2        if(Port_Exti_Flag[2] & Port_Pin_5)
   444   2        {
