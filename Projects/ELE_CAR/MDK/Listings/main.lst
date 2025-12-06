@@ -1,4 +1,4 @@
-C251 COMPILER V5.60.0,  main                                                               06/12/25  07:17:12  PAGE 1   
+C251 COMPILER V5.60.0,  main                                                               06/12/25  14:33:13  PAGE 1   
 
 
 C251 COMPILER V5.60.0, COMPILATION OF MODULE main
@@ -13,14 +13,14 @@ stmt  level    source
     2          #include <MATH.H>
     3          
     4          // ========================= 参数区 =========================
-    5          #define KP_DEFAULT 1.1
-    6          #define KD_DEFAULT 0.4
+    5          #define KP_DEFAULT 1.25
+    6          #define KD_DEFAULT 0.65
     7          #define KA_DEFAULT 0.7
-    8          #define KB_DEFAULT 0.9
-    9          #define MAXSPEED_DEFAULT 2500
-   10          #define MINSPEED_DEFAULT 1800
-   11          float    SPLIT    = 0.8;
-   12          float    LOWER    = 0.8;
+    8          #define KB_DEFAULT 0.8
+    9          #define MAXSPEED_DEFAULT 2700
+   10          #define MINSPEED_DEFAULT 1700
+   11          float    SPLIT    = 0.7;
+   12          float    LOWER    = 0.7;
    13          float    kp       = KP_DEFAULT;       // PID比例系数
    14          float    kd       = KD_DEFAULT;       // PID微分系数
    15          float    kA       = KA_DEFAULT;       // 误差计算系数A
@@ -31,7 +31,7 @@ stmt  level    source
    20          //========================= 内参区 ==========================
    21          uint8_t  stopADC        = 20;           // 停车ADC阈值
    22          uint8_t  timerMs        = 20;           // 计时器触发时 h间(ms)
-   23          uint16_t midDutyOfServo = 722;          // 舵机中位PWM值
+   23          uint16_t midDutyOfServo = 700;          // 舵机中位PWM值
    24          uint16_t maxChangeDuty  = 130;          // 舵机最大变化PWM值
    25          uint8_t  adcPin[4]      = {0, 1, 6, 7}; // ADC引脚映射
    26          
@@ -66,7 +66,7 @@ stmt  level    source
    55          // ========================= 全局变量 =========================
    56          uint16_t adcMax[4] = {20, 20, 20, 20}, adcMaxTemp[4];         // ADC最大值
    57          uint16_t adcMin[4] = {1000, 1000, 1000, 1000}, adcMinTemp[4]; // ADC最小值
-C251 COMPILER V5.60.0,  main                                                               06/12/25  07:17:12  PAGE 2   
+C251 COMPILER V5.60.0,  main                                                               06/12/25  14:33:13  PAGE 2   
 
    58          uint16_t adcRaw[4];                                           // ADC原始值
    59          uint16_t adcAfterLim[4];
@@ -134,7 +134,7 @@ stmt  level    source
   121   2              // 电机控制
   122   2              Go(minSpeed, maxSpeed, pidOut);
   123   2          }
-C251 COMPILER V5.60.0,  main                                                               06/12/25  07:17:12  PAGE 3   
+C251 COMPILER V5.60.0,  main                                                               06/12/25  14:33:13  PAGE 3   
 
   124   1      }
   125          
@@ -202,7 +202,7 @@ stmt  level    source
   187   2              adcMaxTemp[i] = 0;
   188   2              adcMinTemp[i] = 1000;
   189   2          }
-C251 COMPILER V5.60.0,  main                                                               06/12/25  07:17:12  PAGE 4   
+C251 COMPILER V5.60.0,  main                                                               06/12/25  14:33:13  PAGE 4   
 
   190   1          LCD_P8x16Str(0, 3, "NORM...");
   191   1          // 连续采样30000次，动态获取最大值和最小值
@@ -270,7 +270,7 @@ stmt  level    source
   253   3              }
   254   2              adcRaw[k] = getADC[4]; // 取中值作为最终结果
   255   2          }
-C251 COMPILER V5.60.0,  main                                                               06/12/25  07:17:12  PAGE 5   
+C251 COMPILER V5.60.0,  main                                                               06/12/25  14:33:13  PAGE 5   
 
   256   1      }
   257          
@@ -338,7 +338,7 @@ stmt  level    source
   318   1          // 根据误差计算舵机PWM值：中位值 ± 最大变化量×误差
   319   1          PWM_SET_Duty(SERVO, midDutyOfServo + (int)maxChangeDuty * errorInner);
   320   1      }
-C251 COMPILER V5.60.0,  main                                                               06/12/25  07:17:12  PAGE 6   
+C251 COMPILER V5.60.0,  main                                                               06/12/25  14:33:13  PAGE 6   
 
   321          
   322          /// @brief 电机控制函数
@@ -406,7 +406,7 @@ stmt  level    source
   383   2          case 3: // 页面3：积分限幅和Kd调整
   384   2              LCD_P8x16Str(0, 0, "     BIOS 3    ");
   385   2              LCD_P6x8Str(0, 2, "---------------------");
-C251 COMPILER V5.60.0,  main                                                               06/12/25  07:17:12  PAGE 7   
+C251 COMPILER V5.60.0,  main                                                               06/12/25  14:33:13  PAGE 7   
 
   386   2              sprintf(biosLine, "KA = %0.2f       ", kA);
   387   2              LCD_P8x16Str(0, 3, biosLine);
@@ -474,7 +474,7 @@ stmt  level    source
   449          //     }
   450          // }
   451          
-C251 COMPILER V5.60.0,  main                                                               06/12/25  07:17:12  PAGE 8   
+C251 COMPILER V5.60.0,  main                                                               06/12/25  14:33:13  PAGE 8   
 
   452          /// @brief P4口外部中断服务函数（方向键中断）
   453          void P4_EXTI_Activated() interrupt P4INT_VECTOR
@@ -543,7 +543,7 @@ Module Information          Static   Overlayable
   far data size        =    ------     ------
   huge data size       =    ------     ------
   const size           =    ------     ------
-C251 COMPILER V5.60.0,  main                                                               06/12/25  07:17:12  PAGE 9   
+C251 COMPILER V5.60.0,  main                                                               06/12/25  14:33:13  PAGE 9   
 
   hconst size          =       483     ------
 End of Module Information.

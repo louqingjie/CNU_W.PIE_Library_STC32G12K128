@@ -2,14 +2,14 @@
 #include <MATH.H>
 
 // ========================= 参数区 =========================
-#define KP_DEFAULT 1.2
-#define KD_DEFAULT 0.4
+#define KP_DEFAULT 1.25
+#define KD_DEFAULT 0.65
 #define KA_DEFAULT 0.7
-#define KB_DEFAULT 0.9
-#define MAXSPEED_DEFAULT 2800
-#define MINSPEED_DEFAULT 1800
-float    SPLIT    = 0.8;
-float    LOWER    = 0.8;
+#define KB_DEFAULT 0.8
+#define MAXSPEED_DEFAULT 2700
+#define MINSPEED_DEFAULT 1700
+float    SPLIT    = 0.7;
+float    LOWER    = 0.7;
 float    kp       = KP_DEFAULT;       // PID比例系数
 float    kd       = KD_DEFAULT;       // PID微分系数
 float    kA       = KA_DEFAULT;       // 误差计算系数A
@@ -20,7 +20,7 @@ uint16_t minSpeed = MINSPEED_DEFAULT;
 //========================= 内参区 ==========================
 uint8_t  stopADC        = 20;           // 停车ADC阈值
 uint8_t  timerMs        = 20;           // 计时器触发时 h间(ms)
-uint16_t midDutyOfServo = 722;          // 舵机中位PWM值
+uint16_t midDutyOfServo = 700;          // 舵机中位PWM值
 uint16_t maxChangeDuty  = 130;          // 舵机最大变化PWM值
 uint8_t  adcPin[4]      = {0, 1, 6, 7}; // ADC引脚映射
 
